@@ -9,8 +9,18 @@ import (
   "strings"
 )
 
-func createArchive(basedir string, contents []string) {
-  tarPntr, err := os.Create("/tmp/test.tar")
+type Item struct {
+  Start int64
+  Length int64
+  Name string
+}
+
+type ArchiveInfo struct {
+  Items []Item
+}
+
+func createBaseArchive(basedir string, contents []string, file string) {
+  tarPntr, err := os.Create(file)
   if err != nil {
       log.Fatalln(err)
   }
@@ -18,7 +28,13 @@ func createArchive(basedir string, contents []string) {
   tw := tar.NewWriter(tarPntr)
   total := len(contents)
 
+  a := ArchiveInfo{}
+
   for index, file := range contents {
+    curPos, posErr := tarPntr.Seek(0, 1)
+    if (posErr != nil) {
+      log.Fatalln(posErr)
+    }
     stat, statErr := os.Stat(file)
     if (statErr != nil) {
       log.Fatalln(statErr)
@@ -56,6 +72,14 @@ func createArchive(basedir string, contents []string) {
     if fileCloseErr := filePntr.Close(); fileCloseErr != nil {
       panic(fileCloseErr)
     }
+
+    endPos, endPosErr := tarPntr.Seek(0, 1)
+    if (endPosErr != nil) {
+      log.Fatalln(endPosErr)
+    }
+
+    info := Item{Start: curPos, Length: (endPos - curPos), Name: hdr.Name}
+    a.Items = append(a.Items, info)
 
     fmt.Printf("Completed %v / %v", index + 1, total)
     fmt.Println()

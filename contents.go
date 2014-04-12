@@ -4,10 +4,17 @@ import (
   "os"
   "path/filepath"
   "log"
+  "time"
 )
 
-func getContents(root string) []string {
-  var store []string
+type ContentsInfo struct {
+  Size int64
+  Newest time.Time
+  Contents []string
+}
+
+func getContents(root string) ContentsInfo {
+  cnts := ContentsInfo{}
 
   walkFn := func(path string, info os.FileInfo, err error) error {
     stat, err := os.Stat(path)
@@ -15,8 +22,12 @@ func getContents(root string) []string {
       return nil
     }
 
-    if !stat.IsDir() {
-      store = append(store, path)
+    if stat.Mode().IsRegular() {
+      cnts.Size++
+      if (cnts.Newest.Before(stat.ModTime())) {
+        cnts.Newest = stat.ModTime()
+      }
+      cnts.Contents = append(cnts.Contents, path)
     }
     
     return nil
@@ -26,5 +37,5 @@ func getContents(root string) []string {
     log.Fatal(err)
   }
 
-  return store
+  return cnts
 }
