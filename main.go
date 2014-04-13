@@ -4,6 +4,7 @@ import (
   "fmt"
   "os"
   "path/filepath"
+  "strings"
 )
 
 func main() {
@@ -11,8 +12,23 @@ func main() {
 
   if len(args) == 1 {
     fmt.Printf("Usage: %v CONFIG_FILE", args[0]);
+    fmt.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE", args[0]);
     fmt.Println()
     os.Exit(1);
+  }
+
+  if (strings.HasSuffix(args[1], ".enc")) {
+    if len(args) != 4 {
+      fmt.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE", args[0]);
+      os.Exit(1);
+    }
+
+    target := args[1]
+    out := args[2]
+    keyfile := args[3]
+
+    decryptFile(target, out, keyfile)
+    return
   }
 
   abs, absErr := filepath.Abs(args[1])
@@ -49,6 +65,15 @@ func main() {
       gzipPath := fmt.Sprintf("%v.gz", tarPath)
       compressArchive(tarPath, gzipPath)
       os.Remove(tarPath)
+
+      if (instr.Encrypt) {
+        cryptPath := fmt.Sprintf("%v.enc", gzipPath)
+        keyFile := fmt.Sprintf("%v/keys/%v", fullPath, conf.Name)
+        if (!encryptFile(gzipPath, cryptPath, keyFile)) {
+          fmt.Printf("Failed to encrypt %v\r\n", gzipPath)
+        }
+        os.Remove(gzipPath)
+      }
     }
   }
 }

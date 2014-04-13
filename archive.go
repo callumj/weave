@@ -56,7 +56,7 @@ func mergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []st
 
   io.Copy(dupe, basePntr)
 
-  // reset
+  // bump to the end
   dupe.Seek(-2<<9, os.SEEK_END)
 
   // insert
