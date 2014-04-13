@@ -1,8 +1,10 @@
 package main
 
-import "os"
-import "fmt"
-import "path/filepath"
+import (
+  "fmt"
+  "os"
+  "path/filepath"
+)
 
 func main() {
   args := os.Args
@@ -18,12 +20,10 @@ func main() {
     os.Exit(1)
   }
   fullPath := filepath.Dir(abs)
-  fmt.Printf("Nase: %v", fullPath)
 
   // ensure working dir exists
   workingDir := fmt.Sprintf("%v/working", fullPath)
-  _, checkErr := os.Stat(workingDir)
-  if (checkErr != nil && os.IsNotExist(checkErr)) {
+  if (!pathExists(workingDir)) {
     mkErr := os.Mkdir(workingDir, 0775)
     if (mkErr != nil) {
       os.Exit(1)
@@ -35,5 +35,20 @@ func main() {
 
   baseContents := getContents(instr.Src)
   suffix := fmt.Sprintf("%v/%v_%v.tar", workingDir, baseContents.Size, baseContents.Newest.Unix())
-  createBaseArchive(instr.Src, baseContents.Contents, suffix)
+  baseArchive := createBaseArchive(instr.Src, baseContents.Contents, suffix)
+
+  for _, conf := range instr.Configurations {
+    thisPath := fmt.Sprintf("%v/configurations/%v", fullPath, conf.Name)
+    if (!pathExists(thisPath)) {
+      fmt.Printf("%v does not exist", thisPath)
+      fmt.Println()
+    } else {
+      thisContents := getContents(thisPath)
+      tarPath := fmt.Sprintf("%v/%v_%v_%v.tar", workingDir, conf.Name, thisContents.Size, thisContents.Newest.Unix())
+      mergeIntoBaseArchive(baseArchive, thisPath, thisContents.Contents, tarPath)
+      gzipPath := fmt.Sprintf("%v.gz", tarPath)
+      compressArchive(tarPath, gzipPath)
+      os.Remove(tarPath)
+    }
+  }
 }
