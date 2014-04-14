@@ -1,79 +1,106 @@
 package main
 
 import (
-  "fmt"
-  "os"
-  "path/filepath"
-  "strings"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 func main() {
-  args := os.Args
+	args := os.Args
 
-  if len(args) == 1 {
-    fmt.Printf("Usage: %v CONFIG_FILE", args[0]);
-    fmt.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE", args[0]);
-    fmt.Println()
-    os.Exit(1);
-  }
+	checkArgs(args)
 
-  if (strings.HasSuffix(args[1], ".enc")) {
-    if len(args) != 4 {
-      fmt.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE", args[0]);
-      os.Exit(1);
-    }
+	if strings.HasSuffix(args[1], ".enc") {
+		performExtraction(args)
+		return
+	}
 
-    target := args[1]
-    out := args[2]
-    keyfile := args[3]
+	abs, err := filepath.Abs(args[1])
+	if err != nil {
+		log.Printf("Unable to expand %v\r\n", args[1])
+		panicQuit()
+	}
+	fullPath := filepath.Dir(abs)
 
-    decryptFile(target, out, keyfile)
-    return
-  }
+	// ensure working dir exists
+	workingDir := fmt.Sprintf("%v/working", fullPath)
+	if !pathExists(workingDir) {
+		log.Println("Working directory does not existing, creating")
+		err := os.Mkdir(workingDir, 0775)
+		if err != nil {
+			log.Printf("Unable to create %v\r\n", workingDir)
+			panicQuit()
+		}
+	}
 
-  abs, absErr := filepath.Abs(args[1])
-  if (absErr != nil) {
-    os.Exit(1)
-  }
-  fullPath := filepath.Dir(abs)
+	instr := parseInstruction(args[1])
+	explainInstruction(instr)
 
-  // ensure working dir exists
-  workingDir := fmt.Sprintf("%v/working", fullPath)
-  if (!pathExists(workingDir)) {
-    mkErr := os.Mkdir(workingDir, 0775)
-    if (mkErr != nil) {
-      os.Exit(1)
-    }
-  }
+	baseContents := getContents(instr.Src)
+	if baseContents == nil {
+		panicQuit()
+	}
+	suffix := fmt.Sprintf("%v/%v_%v.tar", workingDir, baseContents.Size, baseContents.Newest.Unix())
+	baseArchive := createBaseArchive(instr.Src, baseContents.Contents, suffix)
 
-  instr := parseInstruction(args[1])
-  explainInstruction(instr)
+	if baseArchive == nil {
+		log.Println("Failed to create base archive.")
+		panicQuit()
+	}
 
-  baseContents := getContents(instr.Src)
-  suffix := fmt.Sprintf("%v/%v_%v.tar", workingDir, baseContents.Size, baseContents.Newest.Unix())
-  baseArchive := createBaseArchive(instr.Src, baseContents.Contents, suffix)
+	for _, conf := range instr.Configurations {
+		thisPath := fmt.Sprintf("%v/configurations/%v", fullPath, conf.Name)
+		if !pathExists(thisPath) {
+			log.Printf("%v does not exist. Skipping..\r\n", thisPath)
+		} else {
+			log.Printf("Configuring: %v\r\n", thisPath)
+			thisContents := getContents(thisPath)
+			tarPath := fmt.Sprintf("%v/%v_%v_%v.tar", workingDir, conf.Name, thisContents.Size, thisContents.Newest.Unix())
+			if !mergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath) {
+				log.Println("Failed to merge with base archive. Quitting.")
+				panicQuit()
+			}
+			gzipPath := fmt.Sprintf("%v.gz", tarPath)
+			compressArchive(tarPath, gzipPath)
+			os.Remove(tarPath)
 
-  for _, conf := range instr.Configurations {
-    thisPath := fmt.Sprintf("%v/configurations/%v", fullPath, conf.Name)
-    if (!pathExists(thisPath)) {
-      fmt.Printf("%v does not exist", thisPath)
-      fmt.Println()
-    } else {
-      thisContents := getContents(thisPath)
-      tarPath := fmt.Sprintf("%v/%v_%v_%v.tar", workingDir, conf.Name, thisContents.Size, thisContents.Newest.Unix())
-      mergeIntoBaseArchive(baseArchive, thisPath, thisContents.Contents, tarPath)
-      gzipPath := fmt.Sprintf("%v.gz", tarPath)
-      compressArchive(tarPath, gzipPath)
-      os.Remove(tarPath)
+			if instr.Encrypt {
+				cryptPath := fmt.Sprintf("%v.enc", gzipPath)
+				keyFile := fmt.Sprintf("%v/keys/%v", fullPath, conf.Name)
+				if !encryptFile(gzipPath, cryptPath, keyFile) {
+					log.Printf("Failed to encrypt %v. Quiting..\r\n", gzipPath)
+					panicQuit()
+				}
+				os.Remove(gzipPath)
+			}
+		}
+	}
+}
 
-      if (instr.Encrypt) {
-        cryptPath := fmt.Sprintf("%v.enc", gzipPath)
-        keyFile := fmt.Sprintf("%v/keys/%v", fullPath, conf.Name)
-        if (!encryptFile(gzipPath, cryptPath, keyFile)) {
-          fmt.Printf("Failed to encrypt %v\r\n", gzipPath)
-        }
-        os.Remove(gzipPath)
-      }
-    }
-  }
+func checkArgs(args []string) {
+	if len(args) == 1 {
+		log.Printf("Usage: %v CONFIG_FILE\r\n", args[0])
+		log.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE\r\n", args[0])
+		panicQuit()
+	}
+}
+
+func performExtraction(args []string) {
+	if len(args) != 4 {
+		fmt.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE", args[0])
+		panicQuit()
+	}
+
+	target := args[1]
+	out := args[2]
+	keyfile := args[3]
+
+	decryptFile(target, out, keyfile)
+}
+
+func panicQuit() {
+	panic("Quiting.")
 }
