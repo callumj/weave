@@ -24,7 +24,7 @@ type ArchiveInfo struct {
 func compressArchive(archivePath, outPath string) bool {
 	dupe, err := os.Create(outPath)
 	if err != nil {
-		log.Printf("Unable to open %v for reading\r\n", outPath)
+		log.Printf("Unable to open %v for writing\r\n", outPath)
 		return false
 	}
 	defer dupe.Close()
@@ -33,7 +33,7 @@ func compressArchive(archivePath, outPath string) bool {
 
 	basePntr, err := os.Open(archivePath)
 	if err != nil {
-		log.Printf("Unable to open %v for writing\r\n", archivePath)
+		log.Printf("Unable to open %v for reading\r\n", archivePath)
 		return false
 	}
 	defer basePntr.Close()

@@ -23,7 +23,20 @@ func main() {
 		log.Printf("Unable to expand %v\r\n", args[1])
 		panicQuit()
 	}
-	fullPath := filepath.Dir(abs)
+
+	performCompilation(abs)
+}
+
+func checkArgs(args []string) {
+	if len(args) == 1 {
+		log.Printf("Usage: %v CONFIG_FILE\r\n", args[0])
+		log.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE\r\n", args[0])
+		panicQuit()
+	}
+}
+
+func performCompilation(configPath string) {
+	fullPath := filepath.Dir(configPath)
 
 	// ensure working dir exists
 	workingDir := fmt.Sprintf("%v/working", fullPath)
@@ -36,8 +49,11 @@ func main() {
 		}
 	}
 
-	instr := parseInstruction(args[1])
-	explainInstruction(instr)
+	instr := parseInstruction(configPath)
+	if instr == nil {
+		panicQuit()
+	}
+	explainInstruction(*instr)
 
 	baseContents := getContents(instr.Src)
 	if baseContents == nil {
@@ -80,17 +96,9 @@ func main() {
 	}
 }
 
-func checkArgs(args []string) {
-	if len(args) == 1 {
-		log.Printf("Usage: %v CONFIG_FILE\r\n", args[0])
-		log.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE\r\n", args[0])
-		panicQuit()
-	}
-}
-
 func performExtraction(args []string) {
 	if len(args) != 4 {
-		fmt.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE", args[0])
+		fmt.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE\r\n", args[0])
 		panicQuit()
 	}
 
@@ -98,9 +106,13 @@ func performExtraction(args []string) {
 	out := args[2]
 	keyfile := args[3]
 
-	decryptFile(target, out, keyfile)
+	success := decryptFile(target, out, keyfile)
+
+	if !success {
+		panicQuit()
+	}
 }
 
 func panicQuit() {
-	panic("Quiting.")
+	os.Exit(1)
 }
