@@ -13,7 +13,7 @@ func main() {
 
 	checkArgs(args)
 
-	if strings.HasSuffix(args[1], ".enc") {
+	if strings.HasSuffix(args[1], ".enc") || len(args) == 3 {
 		performExtraction(args)
 		return
 	}
@@ -30,7 +30,7 @@ func main() {
 func checkArgs(args []string) {
 	if len(args) == 1 {
 		log.Printf("Usage: %v CONFIG_FILE\r\n", args[0])
-		log.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE\r\n", args[0])
+		log.Printf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_FILE]\r\n", args[0])
 		panicQuit()
 	}
 }
@@ -97,16 +97,25 @@ func performCompilation(configPath string) {
 }
 
 func performExtraction(args []string) {
-	if len(args) != 4 {
-		fmt.Printf("Usage: %v ENCRYPTED_FILE OUT_FILE KEY_FILE\r\n", args[0])
+	if len(args) < 3 {
+		fmt.Printf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_FILE]\r\n", args[0])
 		panicQuit()
 	}
 
 	target := args[1]
-	out := args[2]
-	keyfile := args[3]
+	keyfile := args[2]
 
-	success := decryptFile(target, out, keyfile)
+	var success bool
+	if len(args) >= 4 {
+		success = decryptFile(target, args[3], keyfile)
+	} else {
+		out := strings.Replace(target, ".enc", "", 1)
+		if out == target {
+			fmt.Println("Cannot determine the out file, please specify")
+			panicQuit()
+		}
+		success = decryptFile(target, out, keyfile)
+	}
 
 	if !success {
 		panicQuit()
