@@ -1,39 +1,53 @@
 package main
 
 import (
-  "gopkg.in/yaml.v1"
-  "io/ioutil"
-  "log"
-  "fmt"
+	"fmt"
+	"gopkg.in/yaml.v1"
+	"io/ioutil"
+	"log"
+	"regexp"
 )
 
 type Configuration struct {
-  Name string
-  Disabled bool 
+	Name     string
+	Disabled bool
 }
 
 type Instruction struct {
-  Src string
-  Encrypt bool
-  Configurations []Configuration
+	Src            string
+	Encrypt        bool
+	Configurations []Configuration
+	Ignore         []string
+	IgnoreReg      []regexp.Regexp
 }
 
-func parseInstruction(path string) Instruction {
-  fileContents, fileErr := ioutil.ReadFile(path)
-  if (fileErr != nil) {
-    log.Fatal(fileErr)
-  }
-  instr := Instruction{}
+func parseInstruction(path string) *Instruction {
+	fileContents, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Printf("Unable to find configuration %v\r\n", path)
+		return nil
+	}
+	instr := Instruction{}
 
-  ymlErr := yaml.Unmarshal([]byte(fileContents), &instr)
-  if ymlErr != nil {
-    log.Fatal(ymlErr)
-  }
+	err = yaml.Unmarshal([]byte(fileContents), &instr)
+	if err != nil {
+		log.Printf("Unable to parse configuration %v\r\n", path)
+		return nil
+	}
 
-  return instr
+	for _, ignorePat := range instr.Ignore {
+		reg, err := regexp.Compile(ignorePat)
+		if err != nil {
+			log.Printf("Unable to compile %v to Regex\r\n", ignorePat)
+			return nil
+		}
+		instr.IgnoreReg = append(instr.IgnoreReg, *reg)
+	}
+
+	return &instr
 }
 
 func explainInstruction(instr Instruction) {
-  fmt.Printf("Using: %v\r\n", instr.Src)
-  fmt.Printf("Encryption: %v\r\n", instr.Encrypt)
+	fmt.Printf("Using: %v\r\n", instr.Src)
+	fmt.Printf("Encryption: %v\r\n", instr.Encrypt)
 }
