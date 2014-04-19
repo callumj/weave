@@ -14,7 +14,7 @@ type ContentsInfo struct {
 	Contents []string
 }
 
-func getContents(root string, ignoreReg []regexp.Regexp) *ContentsInfo {
+func getContents(root string, ignoreReg regexp.Regexp) *ContentsInfo {
 	cnts := ContentsInfo{}
 
 	walkFn := func(path string, info os.FileInfo, err error) error {
@@ -25,10 +25,8 @@ func getContents(root string, ignoreReg []regexp.Regexp) *ContentsInfo {
 
 		if stat.Mode().IsRegular() {
 
-			for _, regex := range ignoreReg {
-				if regex.MatchString(path) {
-					return nil
-				}
+			if ignoreReg.MatchString(path) {
+				return nil
 			}
 
 			cnts.Size++

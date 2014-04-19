@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"gopkg.in/yaml.v1"
 	"io/ioutil"
@@ -18,7 +19,7 @@ type Instruction struct {
 	Encrypt        bool
 	Configurations []Configuration
 	Ignore         []string
-	IgnoreReg      []regexp.Regexp
+	IgnoreReg      regexp.Regexp
 }
 
 func parseInstruction(path string) *Instruction {
@@ -35,14 +36,21 @@ func parseInstruction(path string) *Instruction {
 		return nil
 	}
 
-	for _, ignorePat := range instr.Ignore {
-		reg, err := regexp.Compile(ignorePat)
-		if err != nil {
-			log.Printf("Unable to compile %v to Regex\r\n", ignorePat)
-			return nil
+	var regBuffer bytes.Buffer
+	total := len(instr.Ignore)
+	for index, ignorePat := range instr.Ignore {
+		regBuffer.WriteString(fmt.Sprintf("(%v)", ignorePat))
+		if (index + 1) != total {
+			regBuffer.WriteString("|")
 		}
-		instr.IgnoreReg = append(instr.IgnoreReg, *reg)
 	}
+
+	reg, err := regexp.Compile(regBuffer.String())
+	if err != nil {
+		log.Printf("Failed to merge into Regexp")
+		return nil
+	}
+	instr.IgnoreReg = *reg
 
 	return &instr
 }
