@@ -6,7 +6,7 @@ Weave produces Tar Gzip archives (optional AES encrypted) which can be extracted
 
 Weave is useful if you have a core configuration repository and want to distribute sensitive parts to specific hosts.
 
-I use Weave to distribute sensitive Dockerfiles to various docker hosts, ensuring they only get the Dockerfiles they need.
+I use Weave to generate configuration groups for specific Docker hosts, ensuring they only get the sensitive Dockerfiles they need and nothing more.
 
 ## Weave layout
 
