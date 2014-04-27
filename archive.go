@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 )
 
@@ -44,7 +45,7 @@ func compressArchive(archivePath, outPath string) bool {
 	return true
 }
 
-func mergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []string, file string) bool {
+func mergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []string, file string, ignore *regexp.Regexp) bool {
 	// tar pntr for copy
 	dupe, err := os.Create(file)
 	if err != nil {
@@ -63,14 +64,50 @@ func mergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []st
 	}
 	defer basePntr.Close()
 
-	written, err := io.Copy(dupe, basePntr)
-	if written == 0 {
-		log.Printf("Warning: Did not write anything from %v to %v\r\n", baseArchive.Path, file)
-	}
+	if ignore != nil {
+		// recursively copy, excluding as needed
+		existingTar := tar.NewReader(basePntr)
 
-	if err != nil {
-		log.Printf("Copy failed: \r\n", err)
-		return false
+		for {
+			hdr, err := existingTar.Next()
+			if err == io.EOF {
+				// end of tar archive
+				break
+			}
+
+			checkName := strings.TrimPrefix(hdr.Name, "/")
+			if ignore.MatchString(checkName) {
+				continue
+			}
+
+			if err != nil {
+				log.Printf("Failed to read tar for duping \r\n")
+				return false
+			}
+
+			err = tw.WriteHeader(hdr)
+
+			if err != nil {
+				log.Printf("Failed copy header\r\n")
+				return false
+			}
+
+			if _, err := io.Copy(tw, existingTar); err != nil {
+				log.Printf("Unable to write %s (%v)\r\n", hdr.Name, err)
+				return false
+			}
+		}
+	} else {
+		written, err := io.Copy(dupe, basePntr)
+		if written == 0 {
+			log.Printf("Warning: Did not write anything from %v to %v\r\n", baseArchive.Path, file)
+			return false
+		}
+
+		if err != nil {
+			log.Printf("Copy failed: \r\n", err)
+			return false
+		}
 	}
 
 	// bump to the end

@@ -7,11 +7,14 @@ import (
 	"io/ioutil"
 	"log"
 	"regexp"
+	"strings"
 )
 
 type Configuration struct {
-	Name     string
-	Disabled bool
+	Name      string
+	Disabled  bool
+	Except    []string
+	ExceptReg *regexp.Regexp
 }
 
 type Instruction struct {
@@ -36,9 +39,42 @@ func parseInstruction(path string) *Instruction {
 		return nil
 	}
 
+	var ignoreReg = generateRegexpExpression(instr.Ignore)
+	if ignoreReg == nil {
+		log.Printf("Failed to merge into Regexp")
+		return nil
+	}
+
+	instr.IgnoreReg = *ignoreReg
+
+	for index, conf := range instr.Configurations {
+		if !fillOutConfiguration(&conf) {
+			log.Printf("Unable to compile except for %v\r\n", conf.Name)
+		}
+		instr.Configurations[index] = conf
+	}
+
+	return &instr
+}
+
+func fillOutConfiguration(conf *Configuration) bool {
+	exceptLength := len(conf.Except)
+	if exceptLength != 0 {
+		exceptReg := generateRegexpExpression(conf.Except)
+		if exceptReg == nil {
+			log.Printf("Failed to merge %v except into Regexp", conf.Name)
+			return false
+		}
+		conf.ExceptReg = exceptReg
+	}
+
+	return true
+}
+
+func generateRegexpExpression(ary []string) *regexp.Regexp {
 	var regBuffer bytes.Buffer
-	total := len(instr.Ignore)
-	for index, ignorePat := range instr.Ignore {
+	total := len(ary)
+	for index, ignorePat := range ary {
 		regBuffer.WriteString(fmt.Sprintf("(%v)", ignorePat))
 		if (index + 1) != total {
 			regBuffer.WriteString("|")
@@ -47,15 +83,19 @@ func parseInstruction(path string) *Instruction {
 
 	reg, err := regexp.Compile(regBuffer.String())
 	if err != nil {
-		log.Printf("Failed to merge into Regexp")
 		return nil
 	}
-	instr.IgnoreReg = *reg
 
-	return &instr
+	return reg
 }
 
 func explainInstruction(instr Instruction) {
-	fmt.Printf("Using: %v\r\n", instr.Src)
-	fmt.Printf("Encryption: %v\r\n", instr.Encrypt)
+	log.Printf("Using: %v\r\n", instr.Src)
+	log.Printf("Encryption: %v\r\n", instr.Encrypt)
+	for _, conf := range instr.Configurations {
+		exceptLength := len(conf.Except)
+		if exceptLength != 0 {
+			log.Printf("[%v] Except: %v", conf.Name, strings.Join(conf.Except, ", "))
+		}
+	}
 }

@@ -76,7 +76,7 @@ func performCompilation(configPath string) {
 			log.Printf("Configuring: %v\r\n", thisPath)
 			thisContents := getContents(thisPath, instr.IgnoreReg)
 			tarPath := fmt.Sprintf("%v/%v_%v_%v.tar", workingDir, conf.Name, thisContents.Size, thisContents.Newest.Unix())
-			if !mergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath) {
+			if !mergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath, conf.ExceptReg) {
 				log.Println("Failed to merge with base archive. Quitting.")
 				panicQuit()
 			}
