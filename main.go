@@ -2,6 +2,7 @@ package main
 
 import (
 	"callumj.com/weave/core"
+	"callumj.com/weave/upload"
 	"fmt"
 	"log"
 	"os"
@@ -69,6 +70,8 @@ func performCompilation(configPath string) {
 		panicQuit()
 	}
 
+	var col []upload.FileDescriptor
+
 	for _, conf := range instr.Configurations {
 		thisPath := fmt.Sprintf("%v/configurations/%v", fullPath, conf.Name)
 		log.Printf("Configuring: %v\r\n", thisPath)
@@ -90,15 +93,35 @@ func performCompilation(configPath string) {
 		core.CompressArchive(tarPath, gzipPath)
 		os.Remove(tarPath)
 
+		finalPath := gzipPath
 		if instr.Encrypt {
 			cryptPath := fmt.Sprintf("%v.enc", gzipPath)
 			keyFile := fmt.Sprintf("%v/keys/%v", fullPath, conf.Name)
 			if !core.EncryptFile(gzipPath, cryptPath, keyFile) {
 				log.Printf("Failed to encrypt %v. Quiting..\r\n", gzipPath)
 				panicQuit()
+			} else {
+				finalPath = cryptPath
 			}
 			os.Remove(gzipPath)
 		}
+
+		if instr.S3 != nil {
+			stat, err := os.Stat(finalPath)
+			if err != nil {
+				log.Println("Unable to query %v\r\n", finalPath)
+				panicQuit()
+			}
+
+			desc := new(upload.FileDescriptor)
+			desc.Path = finalPath
+			desc.Size = stat.Size()
+			col = append(col, *desc)
+		}
+	}
+
+	if len(col) != 0 {
+		upload.UploadToS3(*instr.S3, col)
 	}
 }
 
