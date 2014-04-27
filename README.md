@@ -49,7 +49,7 @@ My weave setup also includes this
 * configurations/docker1.callumj.com/radio1/id_rsa
 * configurations/docker2.callumj.com/extended-data/s3_conf.yml
 
-For which these will be merged into their respestive packages.
+For which these will be merged into their respestive packages. Weave doesn't require anything to merge with, which is useful if you only want to filter configuration packages.
 
 I then call weave from this working directory
 
