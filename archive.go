@@ -45,7 +45,7 @@ func compressArchive(archivePath, outPath string) bool {
 	return true
 }
 
-func mergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []string, file string, ignore *regexp.Regexp) bool {
+func mergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []string, file string, ignore *regexp.Regexp, only *regexp.Regexp) bool {
 	// tar pntr for copy
 	dupe, err := os.Create(file)
 	if err != nil {
@@ -64,7 +64,7 @@ func mergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []st
 	}
 	defer basePntr.Close()
 
-	if ignore != nil {
+	if ignore != nil || only != nil {
 		// recursively copy, excluding as needed
 		existingTar := tar.NewReader(basePntr)
 
@@ -76,7 +76,7 @@ func mergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []st
 			}
 
 			checkName := strings.TrimPrefix(hdr.Name, "/")
-			if ignore.MatchString(checkName) {
+			if (ignore != nil && ignore.MatchString(checkName)) || (only != nil && !only.MatchString(checkName)) {
 				continue
 			}
 

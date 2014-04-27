@@ -70,29 +70,33 @@ func performCompilation(configPath string) {
 
 	for _, conf := range instr.Configurations {
 		thisPath := fmt.Sprintf("%v/configurations/%v", fullPath, conf.Name)
-		if !pathExists(thisPath) {
-			log.Printf("%v does not exist. Skipping..\r\n", thisPath)
+		log.Printf("Configuring: %v\r\n", thisPath)
+		var thisContents *ContentsInfo
+		if pathExists(thisPath) {
+			thisContents = getContents(thisPath, instr.IgnoreReg)
 		} else {
-			log.Printf("Configuring: %v\r\n", thisPath)
-			thisContents := getContents(thisPath, instr.IgnoreReg)
-			tarPath := fmt.Sprintf("%v/%v_%v_%v.tar", workingDir, conf.Name, thisContents.Size, thisContents.Newest.Unix())
-			if !mergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath, conf.ExceptReg) {
-				log.Println("Failed to merge with base archive. Quitting.")
+			thisContents = new(ContentsInfo)
+			thisContents.Size = 0
+			thisContents.Contents = []string{}
+			thisContents.Newest = baseContents.Newest
+		}
+		tarPath := fmt.Sprintf("%v/%v_%v_%v.tar", workingDir, conf.Name, thisContents.Size, thisContents.Newest.Unix())
+		if !mergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath, conf.ExceptReg, conf.OnlyReg) {
+			log.Println("Failed to merge with base archive. Quitting.")
+			panicQuit()
+		}
+		gzipPath := fmt.Sprintf("%v.gz", tarPath)
+		compressArchive(tarPath, gzipPath)
+		os.Remove(tarPath)
+
+		if instr.Encrypt {
+			cryptPath := fmt.Sprintf("%v.enc", gzipPath)
+			keyFile := fmt.Sprintf("%v/keys/%v", fullPath, conf.Name)
+			if !encryptFile(gzipPath, cryptPath, keyFile) {
+				log.Printf("Failed to encrypt %v. Quiting..\r\n", gzipPath)
 				panicQuit()
 			}
-			gzipPath := fmt.Sprintf("%v.gz", tarPath)
-			compressArchive(tarPath, gzipPath)
-			os.Remove(tarPath)
-
-			if instr.Encrypt {
-				cryptPath := fmt.Sprintf("%v.enc", gzipPath)
-				keyFile := fmt.Sprintf("%v/keys/%v", fullPath, conf.Name)
-				if !encryptFile(gzipPath, cryptPath, keyFile) {
-					log.Printf("Failed to encrypt %v. Quiting..\r\n", gzipPath)
-					panicQuit()
-				}
-				os.Remove(gzipPath)
-			}
+			os.Remove(gzipPath)
 		}
 	}
 }

@@ -15,6 +15,8 @@ type Configuration struct {
 	Disabled  bool
 	Except    []string
 	ExceptReg *regexp.Regexp
+	Only      []string
+	OnlyReg   *regexp.Regexp
 }
 
 type Instruction struct {
@@ -66,6 +68,16 @@ func fillOutConfiguration(conf *Configuration) bool {
 			return false
 		}
 		conf.ExceptReg = exceptReg
+	}
+
+	onlyLength := len(conf.Only)
+	if onlyLength != 0 {
+		onlyReg := generateRegexpExpression(conf.Only)
+		if onlyReg == nil {
+			log.Printf("Failed to merge %v only into Regexp", conf.Name)
+			return false
+		}
+		conf.OnlyReg = onlyReg
 	}
 
 	return true
