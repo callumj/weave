@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"strings"
 )
 
@@ -172,4 +173,57 @@ func writeFileToArchive(tarPntr *os.File, tw *tar.Writer, file string, basedir s
 	}
 
 	return &Item{Start: curPos, Length: (endPos - curPos), Name: hdr.Name}
+}
+
+func extractArchive(file, directory string) bool {
+	filePntr, err := os.Open(file)
+	if err != nil {
+		log.Printf("Unable to open %v for reading\r\n", file)
+		return false
+	}
+	defer filePntr.Close()
+
+	gzipPntr, err := gzip.NewReader(filePntr)
+	defer gzipPntr.Close()
+
+	tarPntr := tar.NewReader(gzipPntr)
+
+	for {
+		hdr, err := tarPntr.Next()
+		if err == io.EOF {
+			// end of tar archive
+			break
+		}
+		if err != nil {
+			log.Printf("Failed to process %v archive", file)
+			return false
+		}
+		var outputPath string
+		if strings.HasSuffix(directory, "/") || strings.HasPrefix(hdr.Name, "/") {
+			outputPath = strings.Join([]string{directory, hdr.Name}, "")
+		} else {
+			outputPath = strings.Join([]string{directory, hdr.Name}, "/")
+		}
+		fmt.Printf("Extracting: %s\n", outputPath)
+
+		totalPath := path.Dir(outputPath)
+		if !pathExists(totalPath) {
+			os.MkdirAll(totalPath, 0770)
+		}
+
+		writePntr, err := os.Create(outputPath)
+		if err != nil {
+			log.Printf("Failed open handler for %s (%v)\r\n", outputPath, err)
+			return false
+		}
+
+		if _, err := io.Copy(writePntr, tarPntr); err != nil {
+			writePntr.Close()
+			log.Printf("Unable to write %s (%v)\r\n", file, err)
+			return false
+		}
+		writePntr.Close()
+	}
+
+	return true
 }

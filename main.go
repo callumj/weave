@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -13,7 +14,7 @@ func main() {
 
 	checkArgs(args)
 
-	if strings.HasSuffix(args[1], ".enc") || len(args) == 3 {
+	if strings.HasSuffix(args[1], ".enc") || len(args) >= 3 {
 		performExtraction(args)
 		return
 	}
@@ -98,24 +99,41 @@ func performCompilation(configPath string) {
 
 func performExtraction(args []string) {
 	if len(args) < 3 {
-		fmt.Printf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_FILE]\r\n", args[0])
+		fmt.Printf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_DIRECTORY]\r\n", args[0])
 		panicQuit()
 	}
 
 	target := args[1]
 	keyfile := args[2]
 
+	var out string
+
 	var success bool
 	if len(args) >= 4 {
-		success = decryptFile(target, args[3], keyfile)
+		out = strings.Join([]string{args[3], "tmp"}, ".")
+		success = decryptFile(target, out, keyfile)
 	} else {
-		out := strings.Replace(target, ".enc", "", 1)
+		out = strings.Replace(target, ".enc", "", 1)
+		out = strings.Join([]string{out, "tmp"}, ".")
 		if out == target {
 			fmt.Println("Cannot determine the out file, please specify")
 			panicQuit()
 		}
 		success = decryptFile(target, out, keyfile)
 	}
+
+	var ensureDirectory = regexp.MustCompile(`(\.(tmp|tgz|tar|gz))+`)
+	directory := ensureDirectory.ReplaceAllString(out, "")
+
+	if !pathExists(directory) {
+		os.Mkdir(directory, 0770)
+	}
+
+	if success {
+		extractArchive(out, directory)
+	}
+
+	cleanUpIfNeeded(out)
 
 	if !success {
 		panicQuit()
