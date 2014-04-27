@@ -13,7 +13,7 @@ I use Weave to distribute sensitive Dockerfiles to various docker hosts, ensurin
 Your weave project should look like this
 
 * config.yml (the configuration file)
-* configurations (the confiuration groups you *may* want to merge in)
+* configurations (the configuration groups you *may* want to merge in)
 * working (the output directory)
 * keys (optional folder for encryption keys)
 
