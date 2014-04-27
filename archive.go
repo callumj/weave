@@ -108,10 +108,10 @@ func mergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []st
 			log.Printf("Copy failed: \r\n", err)
 			return false
 		}
-	}
 
-	// bump to the end
-	dupe.Seek(-2<<9, os.SEEK_END)
+		// bump to the end
+		dupe.Seek(-2<<9, os.SEEK_END)
+	}
 
 	// insert
 	for _, item := range contents {
