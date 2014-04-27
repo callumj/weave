@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"bytes"
@@ -27,7 +27,7 @@ type Instruction struct {
 	IgnoreReg      regexp.Regexp
 }
 
-func parseInstruction(path string) *Instruction {
+func ParseInstruction(path string) *Instruction {
 	fileContents, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Printf("Unable to find configuration %v\r\n", path)
@@ -101,7 +101,7 @@ func generateRegexpExpression(ary []string) *regexp.Regexp {
 	return reg
 }
 
-func explainInstruction(instr Instruction) {
+func ExplainInstruction(instr Instruction) {
 	log.Printf("Using: %v\r\n", instr.Src)
 	log.Printf("Encryption: %v\r\n", instr.Encrypt)
 	for _, conf := range instr.Configurations {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"callumj.com/weave/core"
 	"fmt"
 	"log"
 	"os"
@@ -41,7 +42,7 @@ func performCompilation(configPath string) {
 
 	// ensure working dir exists
 	workingDir := fmt.Sprintf("%v/working", fullPath)
-	if !pathExists(workingDir) {
+	if !core.PathExists(workingDir) {
 		log.Println("Working directory does not existing, creating")
 		err := os.Mkdir(workingDir, 0775)
 		if err != nil {
@@ -50,18 +51,18 @@ func performCompilation(configPath string) {
 		}
 	}
 
-	instr := parseInstruction(configPath)
+	instr := core.ParseInstruction(configPath)
 	if instr == nil {
 		panicQuit()
 	}
-	explainInstruction(*instr)
+	core.ExplainInstruction(*instr)
 
-	baseContents := getContents(instr.Src, instr.IgnoreReg)
+	baseContents := core.GetContents(instr.Src, instr.IgnoreReg)
 	if baseContents == nil {
 		panicQuit()
 	}
 	suffix := fmt.Sprintf("%v/%v_%v.tar", workingDir, baseContents.Size, baseContents.Newest.Unix())
-	baseArchive := createBaseArchive(instr.Src, baseContents.Contents, suffix)
+	baseArchive := core.CreateBaseArchive(instr.Src, baseContents.Contents, suffix)
 
 	if baseArchive == nil {
 		log.Println("Failed to create base archive.")
@@ -71,28 +72,28 @@ func performCompilation(configPath string) {
 	for _, conf := range instr.Configurations {
 		thisPath := fmt.Sprintf("%v/configurations/%v", fullPath, conf.Name)
 		log.Printf("Configuring: %v\r\n", thisPath)
-		var thisContents *ContentsInfo
-		if pathExists(thisPath) {
-			thisContents = getContents(thisPath, instr.IgnoreReg)
+		var thisContents *core.ContentsInfo
+		if core.PathExists(thisPath) {
+			thisContents = core.GetContents(thisPath, instr.IgnoreReg)
 		} else {
-			thisContents = new(ContentsInfo)
+			thisContents = new(core.ContentsInfo)
 			thisContents.Size = 0
 			thisContents.Contents = []string{}
 			thisContents.Newest = baseContents.Newest
 		}
 		tarPath := fmt.Sprintf("%v/%v_%v_%v.tar", workingDir, conf.Name, thisContents.Size, thisContents.Newest.Unix())
-		if !mergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath, conf.ExceptReg, conf.OnlyReg) {
+		if !core.MergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath, conf.ExceptReg, conf.OnlyReg) {
 			log.Println("Failed to merge with base archive. Quitting.")
 			panicQuit()
 		}
 		gzipPath := fmt.Sprintf("%v.gz", tarPath)
-		compressArchive(tarPath, gzipPath)
+		core.CompressArchive(tarPath, gzipPath)
 		os.Remove(tarPath)
 
 		if instr.Encrypt {
 			cryptPath := fmt.Sprintf("%v.enc", gzipPath)
 			keyFile := fmt.Sprintf("%v/keys/%v", fullPath, conf.Name)
-			if !encryptFile(gzipPath, cryptPath, keyFile) {
+			if !core.EncryptFile(gzipPath, cryptPath, keyFile) {
 				log.Printf("Failed to encrypt %v. Quiting..\r\n", gzipPath)
 				panicQuit()
 			}
@@ -115,7 +116,7 @@ func performExtraction(args []string) {
 	var success bool
 	if len(args) >= 4 {
 		out = strings.Join([]string{args[3], "tmp"}, ".")
-		success = decryptFile(target, out, keyfile)
+		success = core.DecryptFile(target, out, keyfile)
 	} else {
 		out = strings.Replace(target, ".enc", "", 1)
 		out = strings.Join([]string{out, "tmp"}, ".")
@@ -123,21 +124,21 @@ func performExtraction(args []string) {
 			log.Println("Cannot determine the out file, please specify")
 			panicQuit()
 		}
-		success = decryptFile(target, out, keyfile)
+		success = core.DecryptFile(target, out, keyfile)
 	}
 
 	var ensureDirectory = regexp.MustCompile(`(\.(tmp|tgz|tar|gz))+`)
 	directory := ensureDirectory.ReplaceAllString(out, "")
 
-	if !pathExists(directory) {
+	if !core.PathExists(directory) {
 		os.Mkdir(directory, 0770)
 	}
 
 	if success {
-		extractArchive(out, directory)
+		core.ExtractArchive(out, directory)
 	}
 
-	cleanUpIfNeeded(out)
+	core.CleanUpIfNeeded(out)
 
 	if !success {
 		panicQuit()

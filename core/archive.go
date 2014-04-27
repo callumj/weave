@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"archive/tar"
@@ -23,7 +23,7 @@ type ArchiveInfo struct {
 	Path  string
 }
 
-func compressArchive(archivePath, outPath string) bool {
+func CompressArchive(archivePath, outPath string) bool {
 	dupe, err := os.Create(outPath)
 	if err != nil {
 		log.Printf("Unable to open %v for writing\r\n", outPath)
@@ -45,7 +45,7 @@ func compressArchive(archivePath, outPath string) bool {
 	return true
 }
 
-func mergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []string, file string, ignore *regexp.Regexp, only *regexp.Regexp) bool {
+func MergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []string, file string, ignore *regexp.Regexp, only *regexp.Regexp) bool {
 	// tar pntr for copy
 	dupe, err := os.Create(file)
 	if err != nil {
@@ -125,7 +125,7 @@ func mergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []st
 	return true
 }
 
-func createBaseArchive(basedir string, contents []string, file string) *ArchiveInfo {
+func CreateBaseArchive(basedir string, contents []string, file string) *ArchiveInfo {
 	tarPntr, err := os.Create(file)
 	if err != nil {
 		log.Printf("Unable to open base archive %v\r\n", file)
@@ -212,7 +212,7 @@ func writeFileToArchive(tarPntr *os.File, tw *tar.Writer, file string, basedir s
 	return &Item{Start: curPos, Length: (endPos - curPos), Name: hdr.Name}
 }
 
-func extractArchive(file, directory string) bool {
+func ExtractArchive(file, directory string) bool {
 	filePntr, err := os.Open(file)
 	if err != nil {
 		log.Printf("Unable to open %v for reading\r\n", file)
@@ -244,7 +244,7 @@ func extractArchive(file, directory string) bool {
 		log.Printf("Extracting: %s\n", outputPath)
 
 		totalPath := path.Dir(outputPath)
-		if !pathExists(totalPath) {
+		if !PathExists(totalPath) {
 			os.MkdirAll(totalPath, 0770)
 		}
 

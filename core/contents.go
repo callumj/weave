@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"log"
@@ -14,7 +14,7 @@ type ContentsInfo struct {
 	Contents []string
 }
 
-func getContents(root string, ignoreReg regexp.Regexp) *ContentsInfo {
+func GetContents(root string, ignoreReg regexp.Regexp) *ContentsInfo {
 	cnts := ContentsInfo{}
 
 	walkFn := func(path string, info os.FileInfo, err error) error {

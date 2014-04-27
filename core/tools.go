@@ -1,12 +1,12 @@
-package main
+package core
 
 import (
 	"log"
 	"os"
 )
 
-func cleanUpIfNeeded(path string) {
-	if pathExists(path) {
+func CleanUpIfNeeded(path string) {
+	if PathExists(path) {
 		err := os.RemoveAll(path)
 		if err != nil {
 			log.Println("Failed to clean up %v\r\n", path)
@@ -14,7 +14,7 @@ func cleanUpIfNeeded(path string) {
 	}
 }
 
-func pathExists(path string) bool {
+func PathExists(path string) bool {
 	_, checkErr := os.Stat(path)
 	if checkErr != nil && os.IsNotExist(checkErr) {
 		return false
