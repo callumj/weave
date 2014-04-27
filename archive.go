@@ -204,7 +204,7 @@ func extractArchive(file, directory string) bool {
 		} else {
 			outputPath = strings.Join([]string{directory, hdr.Name}, "/")
 		}
-		fmt.Printf("Extracting: %s\n", outputPath)
+		log.Printf("Extracting: %s\n", outputPath)
 
 		totalPath := path.Dir(outputPath)
 		if !pathExists(totalPath) {

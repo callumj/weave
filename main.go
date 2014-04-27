@@ -99,7 +99,7 @@ func performCompilation(configPath string) {
 
 func performExtraction(args []string) {
 	if len(args) < 3 {
-		fmt.Printf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_DIRECTORY]\r\n", args[0])
+		log.Printf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_DIRECTORY]\r\n", args[0])
 		panicQuit()
 	}
 
@@ -116,7 +116,7 @@ func performExtraction(args []string) {
 		out = strings.Replace(target, ".enc", "", 1)
 		out = strings.Join([]string{out, "tmp"}, ".")
 		if out == target {
-			fmt.Println("Cannot determine the out file, please specify")
+			log.Println("Cannot determine the out file, please specify")
 			panicQuit()
 		}
 		success = decryptFile(target, out, keyfile)

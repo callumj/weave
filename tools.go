@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 )
 
@@ -9,7 +9,7 @@ func cleanUpIfNeeded(path string) {
 	if pathExists(path) {
 		err := os.RemoveAll(path)
 		if err != nil {
-			fmt.Println("Failed to clean up %v\r\n", path)
+			log.Println("Failed to clean up %v\r\n", path)
 		}
 	}
 }
