@@ -1,8 +1,13 @@
 package core
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"log"
 	"os"
+	"sort"
 )
 
 func CleanUpIfNeeded(path string) {
@@ -21,4 +26,20 @@ func PathExists(path string) bool {
 	} else {
 		return true
 	}
+}
+
+func GenerateNameSuffix(info ContentsInfo) string {
+	sortedNames := info.Contents
+	sort.Strings(sortedNames)
+
+	var buffer bytes.Buffer
+	for _, name := range sortedNames {
+		buffer.WriteString(name)
+	}
+
+	hasher := sha256.New()
+	hasher.Write(buffer.Bytes())
+	hashed := hasher.Sum(nil)
+	hashedString := hex.EncodeToString(hashed)
+	return fmt.Sprintf("%s_%v", hashedString, info.Size)
 }
