@@ -62,8 +62,10 @@ func performCompilation(configPath string) {
 	if baseContents == nil {
 		panicQuit()
 	}
-	suffix := fmt.Sprintf("%v/%v.tar", workingDir, core.GenerateNameSuffix(*baseContents))
-	baseArchive := core.CreateBaseArchive(instr.Src, baseContents.Contents, suffix)
+
+	baseSuffix := core.GenerateNameSuffix(*baseContents)
+	baseFileName := fmt.Sprintf("%v/%v.tar", workingDir, baseSuffix)
+	baseArchive := core.CreateBaseArchive(instr.Src, baseContents.Contents, baseFileName)
 
 	if baseArchive == nil {
 		log.Println("Failed to create base archive.")
@@ -86,8 +88,8 @@ func performCompilation(configPath string) {
 		}
 
 		filteredContents := core.FilterContents(*baseContents, conf.ExceptReg, conf.OnlyReg)
-
-		tarPath := fmt.Sprintf("%v/%v_%v.tar", workingDir, conf.Name, core.GenerateNameSuffix(*thisContents))
+		recalcBaseSuffix := core.GenerateNameSuffix(*filteredContents)
+		tarPath := fmt.Sprintf("%v/%v_%v.tar", workingDir, conf.Name, core.GenerateFinalNameSuffix(recalcBaseSuffix, *thisContents))
 
 		if !core.MergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath, filteredContents) {
 			log.Println("Failed to merge with base archive. Quitting.")

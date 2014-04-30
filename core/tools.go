@@ -36,6 +36,14 @@ func GenerateNameSuffix(info ContentsInfo) string {
 	hasher := sha256.New()
 	hasher.Write(buffer.Bytes())
 	hashed := hasher.Sum(nil)
-	hashedString := hex.EncodeToString(hashed)
-	return fmt.Sprintf("%s_%v", hashedString, info.Size)
+	return hex.EncodeToString(hashed)
+}
+
+func GenerateFinalNameSuffix(baseSuffix string, info ContentsInfo) string {
+	hash := GenerateNameSuffix(info)
+	join := fmt.Sprintf("%v_%v", hash, baseSuffix)
+	hasher := sha256.New()
+	hasher.Write([]byte(join))
+	hashed := hasher.Sum(nil)
+	return hex.EncodeToString(hashed)
 }
