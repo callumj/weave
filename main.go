@@ -128,7 +128,7 @@ func performCompilation(configPath string) {
 	}
 
 	if len(col) != 0 {
-		//upload.UploadToS3(*instr.S3, col)
+		upload.UploadToS3(*instr.S3, col)
 	}
 }
 
