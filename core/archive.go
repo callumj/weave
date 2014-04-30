@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"regexp"
 	"strings"
 )
 
@@ -45,7 +44,7 @@ func CompressArchive(archivePath, outPath string) bool {
 	return true
 }
 
-func MergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []string, file string, ignore *regexp.Regexp, only *regexp.Regexp) bool {
+func MergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []FileInfo, file string, definitiveList *ContentsInfo) bool {
 	// tar pntr for copy
 	dupe, err := os.Create(file)
 	if err != nil {
@@ -64,7 +63,7 @@ func MergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []st
 	}
 	defer basePntr.Close()
 
-	if ignore != nil || only != nil {
+	if definitiveList != nil {
 		// recursively copy, excluding as needed
 		existingTar := tar.NewReader(basePntr)
 
@@ -76,7 +75,15 @@ func MergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []st
 			}
 
 			checkName := strings.TrimPrefix(hdr.Name, "/")
-			if (ignore != nil && ignore.MatchString(checkName)) || (only != nil && !only.MatchString(checkName)) {
+			found := false
+
+			for _, item := range definitiveList.Contents {
+				if item.RelPath == checkName {
+					found = true
+				}
+			}
+
+			if !found {
 				continue
 			}
 
@@ -115,9 +122,9 @@ func MergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []st
 
 	// insert
 	for _, item := range contents {
-		res := writeFileToArchive(dupe, tw, item, basedir)
+		res := writeFileToArchive(dupe, tw, item.AbsPath, basedir)
 		if res == nil {
-			log.Printf("Unable to add %v to new archive\r\n", item)
+			log.Printf("Unable to add %v to new archive\r\n", item.AbsPath)
 			return false
 		}
 	}
@@ -125,7 +132,7 @@ func MergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []st
 	return true
 }
 
-func CreateBaseArchive(basedir string, contents []string, file string) *ArchiveInfo {
+func CreateBaseArchive(basedir string, contents []FileInfo, file string) *ArchiveInfo {
 	tarPntr, err := os.Create(file)
 	if err != nil {
 		log.Printf("Unable to open base archive %v\r\n", file)
@@ -139,10 +146,10 @@ func CreateBaseArchive(basedir string, contents []string, file string) *ArchiveI
 
 	a := ArchiveInfo{Path: file}
 
-	for index, file := range contents {
-		item := writeFileToArchive(tarPntr, tw, file, basedir)
+	for index, info := range contents {
+		item := writeFileToArchive(tarPntr, tw, info.AbsPath, basedir)
 		if item == nil {
-			log.Printf("Failed to add %v to base archive.\r\n", file)
+			log.Printf("Failed to add %v to base archive.\r\n", info.AbsPath)
 			return nil
 		}
 		fmt.Printf("\rArchiving %v / %v", index+1, total)

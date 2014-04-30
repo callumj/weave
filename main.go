@@ -81,11 +81,15 @@ func performCompilation(configPath string) {
 		} else {
 			thisContents = new(core.ContentsInfo)
 			thisContents.Size = 0
-			thisContents.Contents = []string{}
+			thisContents.Contents = []core.FileInfo{}
 			thisContents.Newest = baseContents.Newest
 		}
+
+		filteredContents := core.FilterContents(*baseContents, conf.ExceptReg, conf.OnlyReg)
+
 		tarPath := fmt.Sprintf("%v/%v_%v.tar", workingDir, conf.Name, core.GenerateNameSuffix(*thisContents))
-		if !core.MergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath, conf.ExceptReg, conf.OnlyReg) {
+
+		if !core.MergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath, filteredContents) {
 			log.Println("Failed to merge with base archive. Quitting.")
 			panicQuit()
 		}
@@ -116,12 +120,13 @@ func performCompilation(configPath string) {
 			desc := new(upload.FileDescriptor)
 			desc.Path = finalPath
 			desc.Size = stat.Size()
+			desc.Name = conf.Name
 			col = append(col, *desc)
 		}
 	}
 
 	if len(col) != 0 {
-		upload.UploadToS3(*instr.S3, col)
+		//upload.UploadToS3(*instr.S3, col)
 	}
 }
 

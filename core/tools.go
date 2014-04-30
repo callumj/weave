@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sort"
 )
 
 func CleanUpIfNeeded(path string) {
@@ -29,12 +28,9 @@ func PathExists(path string) bool {
 }
 
 func GenerateNameSuffix(info ContentsInfo) string {
-	sortedNames := info.Contents
-	sort.Strings(sortedNames)
-
 	var buffer bytes.Buffer
-	for _, name := range sortedNames {
-		buffer.WriteString(name)
+	for _, item := range info.Contents {
+		buffer.WriteString(item.Identifier)
 	}
 
 	hasher := sha256.New()
