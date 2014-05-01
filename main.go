@@ -123,6 +123,7 @@ func performCompilation(configPath string) {
 			desc.Path = finalPath
 			desc.Size = stat.Size()
 			desc.Name = conf.Name
+			desc.FileName = filepath.Base(finalPath)
 			col = append(col, *desc)
 		}
 	}
