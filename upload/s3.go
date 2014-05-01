@@ -38,10 +38,21 @@ type wrappedS3Details struct {
 	PuttableAddress string
 }
 
+type wrappedStateInfo struct {
+	File          FileDescriptor
+	AlreadyExists bool
+}
+
+type wrappedSizeComp struct {
+	Key  string
+	Size int64
+}
+
 func UploadToS3(config S3Config, files []FileDescriptor) {
 	wrapped := buildWrappedConfig(config)
 
-	for _, file := range getFilesRequiringUpload(*wrapped, files) {
+	for _, wr := range getFilesRequiringUpload(*wrapped, files) {
+		file := wr.File
 		log.Printf("Updating %v\r\n", file.Name)
 		var suffix string
 		if strings.Contains(file.Path, ".enc") {
@@ -51,37 +62,49 @@ func UploadToS3(config S3Config, files []FileDescriptor) {
 		}
 		filename := fmt.Sprintf("%s.%s", file.Name, suffix)
 		itemUrl := fmt.Sprintf("%s/%s", wrapped.PuttableAddress, filename)
-		putFile(file, itemUrl, wrapped.Keys)
+		putFile(file, itemUrl, wrapped.Keys, wr.AlreadyExists)
 	}
 }
 
-func getFilesRequiringUpload(wrapped wrappedS3Details, files []FileDescriptor) []FileDescriptor {
-	sizeMap := make(map[string]FileDescriptor)
+func getFilesRequiringUpload(wrapped wrappedS3Details, files []FileDescriptor) []wrappedStateInfo {
+	fileMap := make(map[string]FileDescriptor)
 	for _, file := range files {
-		sizeMap[file.Name] = file
+		fileMap[file.Name] = file
 	}
 
 	reg, err := regexp.Compile("\\.tar.gz(.enc)?$")
 	if err != nil {
 		log.Printf("Failed to compile Regexp\r\n")
-		return []FileDescriptor{}
+		return []wrappedStateInfo{}
 	}
 
-	requiringUpload := []FileDescriptor{}
-	keysRequiringDeepLook := make(map[string]FileDescriptor)
-
 	allKnownFiles := getExistingFiles(wrapped)
+
+	sizeMap := make(map[string]wrappedSizeComp)
 	for _, bucketItem := range allKnownFiles {
 		name := reg.ReplaceAllString(bucketItem.Key, "")
 		if len(wrapped.Config.Folder) != 0 {
 			name = strings.Replace(name, fmt.Sprintf("%v/", wrapped.Config.Folder), "", 1)
 		}
-		if val, found := sizeMap[name]; found {
-			if val.Size == bucketItem.Size {
-				keysRequiringDeepLook[bucketItem.Key] = val
+
+		info := wrappedSizeComp{Key: bucketItem.Key, Size: bucketItem.Size}
+		sizeMap[name] = info
+	}
+
+	requiringUpload := []wrappedStateInfo{}
+	keysRequiringDeepLook := make(map[string]FileDescriptor)
+
+	for name, file := range fileMap {
+		if sizeInfo, found := sizeMap[name]; found {
+			if sizeInfo.Size == file.Size {
+				keysRequiringDeepLook[sizeInfo.Key] = file
 			} else {
-				requiringUpload = append(requiringUpload, val)
+				info := wrappedStateInfo{File: file, AlreadyExists: true}
+				requiringUpload = append(requiringUpload, info)
 			}
+		} else {
+			info := wrappedStateInfo{File: file, AlreadyExists: false}
+			requiringUpload = append(requiringUpload, info)
 		}
 	}
 
@@ -91,8 +114,8 @@ func getFilesRequiringUpload(wrapped wrappedS3Details, files []FileDescriptor) [
 			continue
 		}
 		if name != file.FileName {
-			fmt.Printf("%v == %v\r\n", name, file.FileName)
-			requiringUpload = append(requiringUpload, file)
+			info := wrappedStateInfo{File: file, AlreadyExists: true}
+			requiringUpload = append(requiringUpload, info)
 		}
 	}
 
@@ -139,8 +162,11 @@ func buildWrappedConfig(config S3Config) *wrappedS3Details {
 	return wrapped
 }
 
-func putFile(desc FileDescriptor, restUrl string, keys s3.Keys) bool {
-	return true
+func putFile(desc FileDescriptor, restUrl string, keys s3.Keys, alreadyExists bool) bool {
+	if alreadyExists {
+		deleteBucketItem(restUrl, keys)
+	}
+
 	fr, err := os.Open(desc.Path)
 	if err != nil {
 		log.Printf("Failed to open %v\r\n", desc.Path)
@@ -158,7 +184,7 @@ func putFile(desc FileDescriptor, restUrl string, keys s3.Keys) bool {
 
 	s3Wr, err := s3util.Create(restUrl, h, conf)
 	if err != nil {
-		log.Printf("Failed to open object for writing %v\r\n", restUrl)
+		log.Printf("Failed to open object for writing %v %v\r\n", restUrl, err)
 		return false
 	}
 	defer s3Wr.Close()
@@ -185,6 +211,20 @@ func getExistingFiles(details wrappedS3Details) []Content {
 	return contents
 }
 
+func deleteBucketItem(restUrl string, keys s3.Keys) bool {
+	r, _ := http.NewRequest("DELETE", restUrl, nil)
+	r.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
+	s3.Sign(r, keys)
+
+	_, err := http.DefaultClient.Do(r)
+	if err != nil {
+		log.Printf("Failed to delete %v %v\r\n", restUrl, err)
+		return false
+	}
+
+	return true
+}
+
 func getBucketContents(restUrl string, keys s3.Keys) []ListBucketResult {
 	r, _ := http.NewRequest("GET", restUrl, nil)
 	r.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
@@ -197,7 +237,7 @@ func getBucketContents(restUrl string, keys s3.Keys) []ListBucketResult {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-
+		log.Fatal(err)
 	}
 	resp.Body.Close()
 
