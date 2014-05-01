@@ -44,9 +44,9 @@ func UploadToS3(config S3Config, files []FileDescriptor) {
 }
 
 func getFilesRequiringUpload(wrapped wrappedS3Details, files []FileDescriptor) {
-	sizeMap := make(map[string]int64)
+	sizeMap := make(map[string]FileDescriptor)
 	for _, file := range files {
-		sizeMap[file.Name] = file.Size
+		sizeMap[file.Name] = file
 	}
 
 	reg, err := regexp.Compile("\\.tar.gz(.enc)?$")
@@ -55,7 +55,7 @@ func getFilesRequiringUpload(wrapped wrappedS3Details, files []FileDescriptor) {
 		return
 	}
 
-	keysRequiringDeepLook := []string{}
+	keysRequiringDeepLook := make(map[string]FileDescriptor)
 	allKnownFiles := getExistingFiles(wrapped)
 	for _, bucketItem := range allKnownFiles {
 		name := reg.ReplaceAllString(bucketItem.Key, "")
@@ -63,10 +63,26 @@ func getFilesRequiringUpload(wrapped wrappedS3Details, files []FileDescriptor) {
 			name = strings.Replace(name, fmt.Sprintf("%v/", wrapped.Config.Folder), "", 1)
 		}
 		if val, found := sizeMap[name]; found {
-			if val == bucketItem.Size {
-				keysRequiringDeepLook = append(keysRequiringDeepLook, bucketItem.Key)
+			if val.Size == bucketItem.Size {
+				keysRequiringDeepLook[bucketItem.Key] = val
 			}
 		}
+	}
+
+}
+
+func getBucketItemMeta(wrapped wrappedS3Details, key string) {
+	reqUrl := fmt.Sprintf("%v/%v", wrapped.Endpoint, key)
+	r, _ := http.NewRequest("HEAD", reqUrl, nil)
+	r.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
+	s3.Sign(r, wrapped.Keys)
+
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+
+	}
+	for key, value := range resp.Header {
+
 	}
 }
 
