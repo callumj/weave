@@ -2,7 +2,7 @@ package core
 
 import (
 	"bytes"
-	"callumj.com/weave/upload"
+	"callumj.com/weave/upload/uptypes"
 	"fmt"
 	"gopkg.in/yaml.v1"
 	"io/ioutil"
@@ -26,7 +26,7 @@ type Instruction struct {
 	Configurations []Configuration
 	Ignore         []string
 	IgnoreReg      regexp.Regexp
-	S3             *upload.S3Config
+	S3             *uptypes.S3Config
 }
 
 func ParseInstruction(path string) *Instruction {

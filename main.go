@@ -3,6 +3,7 @@ package main
 import (
 	"callumj.com/weave/core"
 	"callumj.com/weave/upload"
+	"callumj.com/weave/upload/uptypes"
 	"fmt"
 	"log"
 	"os"
@@ -72,7 +73,7 @@ func performCompilation(configPath string) {
 		panicQuit()
 	}
 
-	var col []upload.FileDescriptor
+	var col []uptypes.FileDescriptor
 
 	for _, conf := range instr.Configurations {
 		thisPath := fmt.Sprintf("%v/configurations/%v", fullPath, conf.Name)
@@ -119,7 +120,7 @@ func performCompilation(configPath string) {
 				panicQuit()
 			}
 
-			desc := new(upload.FileDescriptor)
+			desc := new(uptypes.FileDescriptor)
 			desc.Path = finalPath
 			desc.Size = stat.Size()
 			desc.Name = conf.Name

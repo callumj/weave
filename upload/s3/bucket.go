@@ -1,6 +1,7 @@
-package upload
+package s3
 
 import (
+	"callumj.com/weave/upload/uptypes"
 	"encoding/xml"
 	"fmt"
 	"github.com/kr/s3"
@@ -16,30 +17,15 @@ import (
 	"time"
 )
 
-type S3Config struct {
-	Bucket     string
-	Access_Key string
-	Secret     string
-	Folder     string
-	Endpoint   string
-}
-
-type FileDescriptor struct {
-	Name     string
-	FileName string
-	Path     string
-	Size     int64
-}
-
 type wrappedS3Details struct {
-	Config          S3Config
+	Config          uptypes.S3Config
 	Endpoint        string
 	Keys            s3.Keys
 	PuttableAddress string
 }
 
 type wrappedStateInfo struct {
-	File          FileDescriptor
+	File          uptypes.FileDescriptor
 	AlreadyExists bool
 }
 
@@ -48,26 +34,8 @@ type wrappedSizeComp struct {
 	Size int64
 }
 
-func UploadToS3(config S3Config, files []FileDescriptor) {
-	wrapped := buildWrappedConfig(config)
-
-	for _, wr := range getFilesRequiringUpload(*wrapped, files) {
-		file := wr.File
-		log.Printf("Updating %v\r\n", file.Name)
-		var suffix string
-		if strings.Contains(file.Path, ".enc") {
-			suffix = "tar.gz.enc"
-		} else {
-			suffix = "tar.gz"
-		}
-		filename := fmt.Sprintf("%s.%s", file.Name, suffix)
-		itemUrl := fmt.Sprintf("%s/%s", wrapped.PuttableAddress, filename)
-		putFile(file, itemUrl, wrapped.Keys, wr.AlreadyExists)
-	}
-}
-
-func getFilesRequiringUpload(wrapped wrappedS3Details, files []FileDescriptor) []wrappedStateInfo {
-	fileMap := make(map[string]FileDescriptor)
+func getFilesRequiringUpload(wrapped wrappedS3Details, files []uptypes.FileDescriptor) []wrappedStateInfo {
+	fileMap := make(map[string]uptypes.FileDescriptor)
 	for _, file := range files {
 		fileMap[file.Name] = file
 	}
@@ -92,7 +60,7 @@ func getFilesRequiringUpload(wrapped wrappedS3Details, files []FileDescriptor) [
 	}
 
 	requiringUpload := []wrappedStateInfo{}
-	keysRequiringDeepLook := make(map[string]FileDescriptor)
+	keysRequiringDeepLook := make(map[string]uptypes.FileDescriptor)
 
 	for name, file := range fileMap {
 		if sizeInfo, found := sizeMap[name]; found {
@@ -136,7 +104,7 @@ func getBucketItemProperName(wrapped wrappedS3Details, key string) string {
 	return resp.Header.Get("x-amz-meta-fullname")
 }
 
-func buildWrappedConfig(config S3Config) *wrappedS3Details {
+func buildWrappedConfig(config uptypes.S3Config) *wrappedS3Details {
 	keys := new(s3.Keys)
 	keys.AccessKey = config.Access_Key
 	keys.SecretKey = config.Secret
@@ -162,7 +130,7 @@ func buildWrappedConfig(config S3Config) *wrappedS3Details {
 	return wrapped
 }
 
-func putFile(desc FileDescriptor, restUrl string, keys s3.Keys, alreadyExists bool) bool {
+func putFile(desc uptypes.FileDescriptor, restUrl string, keys s3.Keys, alreadyExists bool) bool {
 	if alreadyExists {
 		deleteBucketItem(restUrl, keys)
 	}
@@ -193,7 +161,7 @@ func putFile(desc FileDescriptor, restUrl string, keys s3.Keys, alreadyExists bo
 	return true
 }
 
-func getExistingFiles(details wrappedS3Details) []Content {
+func getExistingFiles(details wrappedS3Details) []uptypes.Content {
 	var finalUrl string
 	if len(details.Config.Folder) == 0 {
 		finalUrl = details.Endpoint
@@ -203,7 +171,7 @@ func getExistingFiles(details wrappedS3Details) []Content {
 
 	allResults := getBucketContents(finalUrl, details.Keys)
 
-	contents := []Content{}
+	contents := []uptypes.Content{}
 	for _, result := range allResults {
 		contents = append(contents, result.Contents...)
 	}
@@ -225,7 +193,7 @@ func deleteBucketItem(restUrl string, keys s3.Keys) bool {
 	return true
 }
 
-func getBucketContents(restUrl string, keys s3.Keys) []ListBucketResult {
+func getBucketContents(restUrl string, keys s3.Keys) []uptypes.ListBucketResult {
 	r, _ := http.NewRequest("GET", restUrl, nil)
 	r.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	s3.Sign(r, keys)
@@ -241,14 +209,14 @@ func getBucketContents(restUrl string, keys s3.Keys) []ListBucketResult {
 	}
 	resp.Body.Close()
 
-	res := ListBucketResult{}
+	res := uptypes.ListBucketResult{}
 	err = xml.Unmarshal([]byte(body), &res)
 
 	if res.IsTruncated {
 		lastItem := res.Contents[len(res.Contents)-1]
 		nextUrl, err := url.Parse(restUrl)
 		if err != nil {
-			return []ListBucketResult{}
+			return []uptypes.ListBucketResult{}
 		}
 		q := nextUrl.Query()
 		q.Set("marker", lastItem.Key)
@@ -257,9 +225,9 @@ func getBucketContents(restUrl string, keys s3.Keys) []ListBucketResult {
 		nextUrlString := fmt.Sprintf("%s", nextUrl)
 		nextBucketContents := getBucketContents(nextUrlString, keys)
 
-		finalResult := []ListBucketResult{res}
+		finalResult := []uptypes.ListBucketResult{res}
 		return append(finalResult, nextBucketContents...)
 	} else {
-		return []ListBucketResult{res}
+		return []uptypes.ListBucketResult{res}
 	}
 }
