@@ -17,8 +17,7 @@ func Run(args []string) {
 
 	abs, err := filepath.Abs(args[1])
 	if err != nil {
-		log.Printf("Unable to expand %v\r\n", args[1])
-		panicQuit()
+		panicQuitf("Unable to expand %v\r\n", args[1])
 	}
 
 	performCompilation(abs)
@@ -27,11 +26,15 @@ func Run(args []string) {
 func checkArgs(args []string) {
 	if len(args) == 1 {
 		log.Printf("Usage: %v CONFIG_FILE\r\n", args[0])
-		log.Printf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_FILE]\r\n", args[0])
-		panicQuit()
+		panicQuitf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_FILE]\r\n", args[0])
 	}
 }
 
 func panicQuit() {
+	os.Exit(1)
+}
+
+func panicQuitf(format string, v ...interface{}) {
+	log.Printf(format, v)
 	os.Exit(1)
 }

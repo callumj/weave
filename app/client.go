@@ -2,7 +2,6 @@ package app
 
 import (
 	"callumj.com/weave/core"
-	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -10,8 +9,7 @@ import (
 
 func performExtraction(args []string) {
 	if len(args) < 3 {
-		log.Printf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_DIRECTORY]\r\n", args[0])
-		panicQuit()
+		panicQuitf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_DIRECTORY]\r\n", args[0])
 	}
 
 	target := args[1]
@@ -27,8 +25,7 @@ func performExtraction(args []string) {
 		out = strings.Replace(target, ".enc", "", 1)
 		out = strings.Join([]string{out, "tmp"}, ".")
 		if out == target {
-			log.Println("Cannot determine the out file, please specify")
-			panicQuit()
+			panicQuitf("Cannot determine the out file, please specify")
 		}
 		success = core.DecryptFile(target, out, keyfile)
 	}
