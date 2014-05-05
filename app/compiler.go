@@ -2,6 +2,12 @@ package app
 
 import (
 	"callumj.com/weave/core"
+	"callumj.com/weave/upload"
+	"callumj.com/weave/upload/uptypes"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
 )
 
 func performCompilation(configPath string) {
@@ -41,60 +47,70 @@ func performCompilation(configPath string) {
 	var col []uptypes.FileDescriptor
 
 	for _, conf := range instr.Configurations {
-		thisPath := fmt.Sprintf("%v/configurations/%v", fullPath, conf.Name)
-		log.Printf("Configuring: %v\r\n", thisPath)
-		var thisContents *core.ContentsInfo
-		if core.PathExists(thisPath) {
-			thisContents = core.GetContents(thisPath, instr.IgnoreReg)
-		} else {
-			thisContents = new(core.ContentsInfo)
-			thisContents.Size = 0
-			thisContents.Contents = []core.FileInfo{}
-			thisContents.Newest = baseContents.Newest
-		}
-
-		filteredContents := core.FilterContents(*baseContents, conf.ExceptReg, conf.OnlyReg)
-		recalcBaseSuffix := core.GenerateNameSuffix(*filteredContents)
-		tarPath := fmt.Sprintf("%v/%v_%v.tar", workingDir, conf.Name, core.GenerateFinalNameSuffix(recalcBaseSuffix, *thisContents))
-
-		if !core.MergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath, filteredContents) {
-			log.Println("Failed to merge with base archive. Quitting.")
-			panicQuit()
-		}
-		gzipPath := fmt.Sprintf("%v.gz", tarPath)
-		core.CompressArchive(tarPath, gzipPath)
-		os.Remove(tarPath)
-
-		finalPath := gzipPath
-		if instr.Encrypt {
-			cryptPath := fmt.Sprintf("%v.enc", gzipPath)
-			keyFile := fmt.Sprintf("%v/keys/%v", fullPath, conf.Name)
-			if !core.EncryptFile(gzipPath, cryptPath, keyFile) {
-				log.Printf("Failed to encrypt %v. Quiting..\r\n", gzipPath)
-				panicQuit()
-			} else {
-				finalPath = cryptPath
-			}
-			os.Remove(gzipPath)
-		}
-
+		finalPath := processConfiguration(conf, fullPath, *instr, baseContents, baseArchive)
 		if instr.S3 != nil {
-			stat, err := os.Stat(finalPath)
-			if err != nil {
-				log.Println("Unable to query %v\r\n", finalPath)
-				panicQuit()
-			}
-
-			desc := new(uptypes.FileDescriptor)
-			desc.Path = finalPath
-			desc.Size = stat.Size()
-			desc.Name = conf.Name
-			desc.FileName = filepath.Base(finalPath)
-			col = append(col, *desc)
+			col = appendForS3(finalPath, conf, col)
 		}
 	}
 
 	if len(col) != 0 {
 		upload.UploadToS3(*instr.S3, col)
 	}
+}
+
+func processConfiguration(conf core.Configuration, fullPath string, instr core.Instruction, baseContents *core.ContentsInfo, baseArchive *core.ArchiveInfo) string {
+	thisPath := fmt.Sprintf("%v/configurations/%v", fullPath, conf.Name)
+	workingDir := fmt.Sprintf("%v/working", fullPath)
+	log.Printf("Configuring: %v\r\n", thisPath)
+	var thisContents *core.ContentsInfo
+	if core.PathExists(thisPath) {
+		thisContents = core.GetContents(thisPath, instr.IgnoreReg)
+	} else {
+		thisContents = new(core.ContentsInfo)
+		thisContents.Size = 0
+		thisContents.Contents = []core.FileInfo{}
+		thisContents.Newest = baseContents.Newest
+	}
+
+	filteredContents := core.FilterContents(*baseContents, conf.ExceptReg, conf.OnlyReg)
+	recalcBaseSuffix := core.GenerateNameSuffix(*filteredContents)
+	tarPath := fmt.Sprintf("%v/%v_%v.tar", workingDir, conf.Name, core.GenerateFinalNameSuffix(recalcBaseSuffix, *thisContents))
+
+	if !core.MergeIntoBaseArchive(*baseArchive, thisPath, thisContents.Contents, tarPath, filteredContents) {
+		log.Println("Failed to merge with base archive. Quitting.")
+		panicQuit()
+	}
+	gzipPath := fmt.Sprintf("%v.gz", tarPath)
+	core.CompressArchive(tarPath, gzipPath)
+	os.Remove(tarPath)
+
+	finalPath := gzipPath
+	if instr.Encrypt {
+		cryptPath := fmt.Sprintf("%v.enc", gzipPath)
+		keyFile := fmt.Sprintf("%v/keys/%v", fullPath, conf.Name)
+		if !core.EncryptFile(gzipPath, cryptPath, keyFile) {
+			log.Printf("Failed to encrypt %v. Quiting..\r\n", gzipPath)
+			panicQuit()
+		} else {
+			finalPath = cryptPath
+		}
+		os.Remove(gzipPath)
+	}
+
+	return finalPath
+}
+
+func appendForS3(finalPath string, conf core.Configuration, col []uptypes.FileDescriptor) []uptypes.FileDescriptor {
+	stat, err := os.Stat(finalPath)
+	if err != nil {
+		log.Println("Unable to query %v\r\n", finalPath)
+		panicQuit()
+	}
+
+	desc := new(uptypes.FileDescriptor)
+	desc.Path = finalPath
+	desc.Size = stat.Size()
+	desc.Name = conf.Name
+	desc.FileName = filepath.Base(finalPath)
+	return append(col, *desc)
 }
