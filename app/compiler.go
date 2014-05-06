@@ -2,8 +2,9 @@ package app
 
 import (
 	"callumj.com/weave/core"
-	"callumj.com/weave/upload"
-	"callumj.com/weave/upload/uptypes"
+	"callumj.com/weave/remote"
+	"callumj.com/weave/remote/uptypes"
+	"callumj.com/weave/tools"
 	"fmt"
 	"log"
 	"os"
@@ -15,7 +16,7 @@ func performCompilation(configPath string) {
 
 	// ensure working dir exists
 	workingDir := fmt.Sprintf("%v/working", fullPath)
-	if !core.PathExists(workingDir) {
+	if !tools.PathExists(workingDir) {
 		log.Println("Working directory does not existing, creating")
 		err := os.Mkdir(workingDir, 0775)
 		if err != nil {
@@ -52,7 +53,7 @@ func performCompilation(configPath string) {
 	}
 
 	if len(col) != 0 {
-		upload.UploadToS3(*instr.S3, col)
+		remote.UploadToS3(*instr.S3, col)
 	}
 }
 
@@ -105,7 +106,7 @@ func appendForS3(finalPath string, conf core.Configuration, col []uptypes.FileDe
 
 func constructContents(thisPath string, baseContents *core.ContentsInfo, instr core.Instruction) *core.ContentsInfo {
 	var thisContents *core.ContentsInfo
-	if core.PathExists(thisPath) {
+	if tools.PathExists(thisPath) {
 		thisContents = core.GetContents(thisPath, instr.IgnoreReg)
 	} else {
 		thisContents = new(core.ContentsInfo)

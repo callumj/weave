@@ -2,6 +2,7 @@ package core
 
 import (
 	"archive/tar"
+	"callumj.com/weave/tools"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -251,7 +252,7 @@ func ExtractArchive(file, directory string) bool {
 		log.Printf("Extracting: %s\n", outputPath)
 
 		totalPath := path.Dir(outputPath)
-		if !PathExists(totalPath) {
+		if !tools.PathExists(totalPath) {
 			os.MkdirAll(totalPath, 0770)
 		}
 

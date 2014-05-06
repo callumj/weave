@@ -2,7 +2,7 @@ package core
 
 import (
 	"bytes"
-	"callumj.com/weave/upload/uptypes"
+	"callumj.com/weave/remote/uptypes"
 	"fmt"
 	"gopkg.in/yaml.v1"
 	"io/ioutil"
