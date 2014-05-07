@@ -5,6 +5,7 @@ import (
 	"callumj.com/weave/remote"
 	"callumj.com/weave/tools"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -60,29 +61,51 @@ func performExtraction(args []string) {
 	}
 
 	if success {
-		core.ExtractArchive(out, directory)
+		success = core.ExtractArchive(out, directory)
 	}
 
 	tools.CleanUpIfNeeded(out)
 
-	if len(eTag) != 0 {
+	if success && len(eTag) != 0 {
 		etagfile := fmt.Sprintf("%v/.weave.etag", directory)
 		ioutil.WriteFile(etagfile, []byte(eTag), 0775)
 	}
 
-	postExtractionPath := fmt.Sprintf("%v/post_extraction.sh", directory)
-	if tools.PathExists(postExtractionPath) {
-		os.Chmod(postExtractionPath, 0770)
-		cmd := exec.Command("/bin/sh", postExtractionPath)
-		out, err := cmd.Output()
-		if err != nil {
-			panicQuitf("Failed to start %v (%v)\r\n", postExtractionPath, err)
-		}
-		fmt.Printf("%s", out)
-		cmd.Wait()
+	if success {
+		runPostExtractionCallback(directory)
 	}
 
 	if !success {
 		panicQuit()
+	}
+}
+
+func runPostExtractionCallback(directory string) {
+	postExtractionPath := fmt.Sprintf("%v/post_extraction.sh", directory)
+	if tools.PathExists(postExtractionPath) {
+		cmd := exec.Command("/bin/sh", postExtractionPath)
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			panicQuitf("Unable to open STDOUT")
+		}
+		if err := cmd.Start(); err != nil {
+			panicQuitf("Unable to start %v (%v)\r\n", postExtractionPath, err)
+		}
+
+		logPath := fmt.Sprintf("%v/post_extraction.log", directory)
+		stdoutLogFile, err := os.Create(logPath)
+		if err != nil {
+			panicQuitf("Unable to open file for logging %v\r\n", logPath)
+		}
+		defer stdoutLogFile.Close()
+
+		_, err = io.Copy(stdoutLogFile, stdout)
+		if err != nil {
+			panicQuitf("Failed to copy STDOUT to file\r\n")
+		}
+
+		if err := cmd.Wait(); err != nil {
+			panicQuitf("Failed finalise command (%v)\r\n", err)
+		}
 	}
 }
