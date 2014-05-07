@@ -130,7 +130,7 @@ func buildWrappedConfig(config uptypes.S3Config) *wrappedS3Details {
 	return wrapped
 }
 
-func putFile(desc uptypes.FileDescriptor, restUrl string, keys s3.Keys, alreadyExists bool) bool {
+func putFile(desc uptypes.FileDescriptor, restUrl string, keys s3.Keys, alreadyExists bool, public bool) bool {
 	if alreadyExists {
 		deleteBucketItem(restUrl, keys)
 	}
@@ -146,8 +146,14 @@ func putFile(desc uptypes.FileDescriptor, restUrl string, keys s3.Keys, alreadyE
 	conf.Keys = &keys
 	conf.Service = s3util.DefaultConfig.Service
 
+	var acl string
+	if public {
+		acl = "public-read"
+	}
+
 	h := http.Header{
 		"x-amz-meta-fullname": {desc.FileName},
+		"x-amz-acl":           {acl},
 	}
 
 	s3Wr, err := s3util.Create(restUrl, h, conf)

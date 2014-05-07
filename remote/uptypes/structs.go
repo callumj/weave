@@ -32,4 +32,5 @@ type S3Config struct {
 	Secret     string
 	Folder     string
 	Endpoint   string
+	Public     bool
 }

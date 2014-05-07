@@ -21,6 +21,6 @@ func UploadToS3(config uptypes.S3Config, files []uptypes.FileDescriptor) {
 		}
 		filename := fmt.Sprintf("%s.%s", file.Name, suffix)
 		itemUrl := fmt.Sprintf("%s/%s", wrapped.PuttableAddress, filename)
-		putFile(file, itemUrl, wrapped.Keys, wr.AlreadyExists)
+		putFile(file, itemUrl, wrapped.Keys, wr.AlreadyExists, config.Public)
 	}
 }
