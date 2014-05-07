@@ -35,6 +35,6 @@ func panicQuit() {
 }
 
 func panicQuitf(format string, v ...interface{}) {
-	log.Printf(format, v)
+	log.Printf(format, v...)
 	os.Exit(1)
 }

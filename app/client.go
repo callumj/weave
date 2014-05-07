@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 )
@@ -67,6 +68,18 @@ func performExtraction(args []string) {
 	if len(eTag) != 0 {
 		etagfile := fmt.Sprintf("%v/.weave.etag", directory)
 		ioutil.WriteFile(etagfile, []byte(eTag), 0775)
+	}
+
+	postExtractionPath := fmt.Sprintf("%v/post_extraction.sh", directory)
+	if tools.PathExists(postExtractionPath) {
+		os.Chmod(postExtractionPath, 0770)
+		cmd := exec.Command("/bin/sh", postExtractionPath)
+		out, err := cmd.Output()
+		if err != nil {
+			panicQuitf("Failed to start %v (%v)\r\n", postExtractionPath, err)
+		}
+		fmt.Printf("%s", out)
+		cmd.Wait()
 	}
 
 	if !success {
