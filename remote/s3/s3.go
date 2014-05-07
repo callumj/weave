@@ -1,8 +1,8 @@
 package s3
 
 import (
-	"callumj.com/weave/remote/uptypes"
 	"fmt"
+	"github.com/callumj/weave/remote/uptypes"
 	"log"
 	"strings"
 )

@@ -2,9 +2,9 @@ package core
 
 import (
 	"archive/tar"
-	"callumj.com/weave/tools"
 	"compress/gzip"
 	"fmt"
+	"github.com/callumj/weave/tools"
 	"io"
 	"log"
 	"os"

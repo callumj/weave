@@ -1,7 +1,7 @@
 package main
 
 import (
-	"callumj.com/weave/app"
+	"github.com/callumj/weave/app"
 	"os"
 )
 

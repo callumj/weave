@@ -1,9 +1,9 @@
 package s3
 
 import (
-	"callumj.com/weave/remote/uptypes"
 	"encoding/xml"
 	"fmt"
+	"github.com/callumj/weave/remote/uptypes"
 	"github.com/kr/s3"
 	"github.com/kr/s3/s3util"
 	"io"

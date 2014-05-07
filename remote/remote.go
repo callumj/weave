@@ -1,10 +1,10 @@
 package remote
 
 import (
-	"callumj.com/weave/remote/s3"
-	"callumj.com/weave/remote/uptypes"
-	"callumj.com/weave/tools"
 	"fmt"
+	"github.com/callumj/weave/remote/s3"
+	"github.com/callumj/weave/remote/uptypes"
+	"github.com/callumj/weave/tools"
 	"io"
 	"io/ioutil"
 	"log"

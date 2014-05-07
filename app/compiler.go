@@ -1,11 +1,11 @@
 package app
 
 import (
-	"callumj.com/weave/core"
-	"callumj.com/weave/remote"
-	"callumj.com/weave/remote/uptypes"
-	"callumj.com/weave/tools"
 	"fmt"
+	"github.com/callumj/weave/core"
+	"github.com/callumj/weave/remote"
+	"github.com/callumj/weave/remote/uptypes"
+	"github.com/callumj/weave/tools"
 	"log"
 	"os"
 	"path/filepath"
