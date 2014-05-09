@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -56,6 +57,8 @@ func performExtraction(args []string) {
 	var ensureDirectory = regexp.MustCompile(`(\.(tmp|tgz|tar|gz))+`)
 	directory := ensureDirectory.ReplaceAllString(out, "")
 
+	directory, _ = filepath.Abs(directory)
+
 	if !tools.PathExists(directory) {
 		os.Mkdir(directory, 0770)
 	}
@@ -83,7 +86,12 @@ func performExtraction(args []string) {
 func runPostExtractionCallback(directory string) {
 	postExtractionPath := fmt.Sprintf("%v/post_extraction.sh", directory)
 	if tools.PathExists(postExtractionPath) {
-		cmd := exec.Command("/bin/sh", postExtractionPath)
+		bashLoc, _ := exec.LookPath("bash")
+		if len(bashLoc) == 0 {
+			bashLoc = "/bin/bash"
+		}
+		cmd := exec.Command(bashLoc, postExtractionPath)
+		cmd.Dir = directory
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			panicQuitf("Unable to open STDOUT")
