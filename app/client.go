@@ -109,7 +109,7 @@ func runPostExtractionCallback(directory string) {
 
 		_, err = io.Copy(stdoutLogFile, stdout)
 		if err != nil {
-			panicQuitf("Failed to copy STDOUT to file\r\n")
+			panicQuitf("Failed to copy STDOUT to file (%v)\r\n", err)
 		}
 
 		if err := cmd.Wait(); err != nil {
