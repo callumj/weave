@@ -23,6 +23,8 @@ type ArchiveInfo struct {
 	Path  string
 }
 
+type archiveProcessCallback func(string, *tar.Reader) bool
+
 func CompressArchive(archivePath, outPath string) bool {
 	dupe, err := os.Create(outPath)
 	if err != nil {
@@ -221,6 +223,32 @@ func writeFileToArchive(tarPntr *os.File, tw *tar.Writer, file string, basedir s
 }
 
 func ExtractArchive(file, directory string) bool {
+	return iterateOnArchive(file, directory, func(outputPath string, tarPntr *tar.Reader) bool {
+		log.Printf("Extracting: %s\n", outputPath)
+
+		totalPath := path.Dir(outputPath)
+		if !tools.PathExists(totalPath) {
+			os.MkdirAll(totalPath, 0770)
+		}
+
+		writePntr, err := os.Create(outputPath)
+		if err != nil {
+			log.Printf("Failed open handler for %s (%v)\r\n", outputPath, err)
+			return false
+		}
+
+		if _, err := io.Copy(writePntr, tarPntr); err != nil {
+			writePntr.Close()
+			log.Printf("Unable to write %s (%v)\r\n", outputPath, err)
+			return false
+		}
+		writePntr.Close()
+
+		return true
+	})
+}
+
+func iterateOnArchive(file, directory string, callback archiveProcessCallback) bool {
 	filePntr, err := os.Open(file)
 	if err != nil {
 		log.Printf("Unable to open %v for reading\r\n", file)
@@ -249,25 +277,12 @@ func ExtractArchive(file, directory string) bool {
 		} else {
 			outputPath = strings.Join([]string{directory, hdr.Name}, "/")
 		}
-		log.Printf("Extracting: %s\n", outputPath)
 
-		totalPath := path.Dir(outputPath)
-		if !tools.PathExists(totalPath) {
-			os.MkdirAll(totalPath, 0770)
-		}
+		res := callback(outputPath, tarPntr)
 
-		writePntr, err := os.Create(outputPath)
-		if err != nil {
-			log.Printf("Failed open handler for %s (%v)\r\n", outputPath, err)
+		if res == false {
 			return false
 		}
-
-		if _, err := io.Copy(writePntr, tarPntr); err != nil {
-			writePntr.Close()
-			log.Printf("Unable to write %s (%v)\r\n", file, err)
-			return false
-		}
-		writePntr.Close()
 	}
 
 	return true
