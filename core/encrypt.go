@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 )
 
 func DecryptFile(target, out, keyfile string) bool {
@@ -23,7 +24,9 @@ func DecryptFile(target, out, keyfile string) bool {
 	}
 	defer inFile.Close()
 
-	block, err := aes.NewCipher(keyContents)
+	keyContentsStr := strings.Replace(string(keyContents), "\n", "", -1)
+
+	block, err := aes.NewCipher([]byte(keyContentsStr))
 	if err != nil {
 		log.Printf("Could not load AES Cipher %v\r\n", err)
 		return false
