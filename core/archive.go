@@ -2,6 +2,7 @@ package core
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"github.com/callumj/weave/tools"
@@ -23,7 +24,7 @@ type ArchiveInfo struct {
 	Path  string
 }
 
-type archiveProcessCallback func(string, *tar.Reader) bool
+type archiveProcessCallback func(string, string, *tar.Reader) bool
 
 func CompressArchive(archivePath, outPath string) bool {
 	dupe, err := os.Create(outPath)
@@ -223,7 +224,7 @@ func writeFileToArchive(tarPntr *os.File, tw *tar.Writer, file string, basedir s
 }
 
 func ExtractArchive(file, directory string) bool {
-	return iterateOnArchive(file, directory, func(outputPath string, tarPntr *tar.Reader) bool {
+	return iterateOnArchive(file, directory, func(originalName, outputPath string, tarPntr *tar.Reader) bool {
 		log.Printf("Extracting: %s\n", outputPath)
 
 		totalPath := path.Dir(outputPath)
@@ -246,6 +247,27 @@ func ExtractArchive(file, directory string) bool {
 
 		return true
 	})
+}
+
+func FetchFile(archive, name string) string {
+	contents := ""
+
+	iterateOnArchive(archive, "", func(originalName, outputPath string, tarPntr *tar.Reader) bool {
+		if name == originalName {
+			buf := bytes.NewBuffer(nil)
+			_, err := io.Copy(buf, tarPntr)
+			if err != nil {
+				log.Printf("Unable to read in %v\r\n", name)
+				return false
+			}
+
+			contents = string(buf.Bytes())
+			return false
+		}
+		return true
+	})
+
+	return contents
 }
 
 func iterateOnArchive(file, directory string, callback archiveProcessCallback) bool {
@@ -278,7 +300,7 @@ func iterateOnArchive(file, directory string, callback archiveProcessCallback) b
 			outputPath = strings.Join([]string{directory, hdr.Name}, "/")
 		}
 
-		res := callback(outputPath, tarPntr)
+		res := callback(hdr.Name, outputPath, tarPntr)
 
 		if res == false {
 			return false

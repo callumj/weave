@@ -63,6 +63,14 @@ func performExtraction(args []string) {
 		os.Mkdir(directory, 0770)
 	}
 
+	preExtraction := core.FetchFile(out, "/pre_extraction.sh")
+	if len(preExtraction) != 0 {
+		// write the pre file
+		preName := fmt.Sprintf("%v/pre_extraction.sh", directory)
+		ioutil.WriteFile(preName, []byte(preExtraction), 0770)
+		runCallback(preName, directory)
+	}
+
 	if success {
 		success = core.ExtractArchive(out, directory)
 	}
@@ -75,7 +83,8 @@ func performExtraction(args []string) {
 	}
 
 	if success {
-		runCallback("post_extraction", directory)
+		callbackPath := fmt.Sprintf("%v/post_extraction.sh", directory)
+		runCallback(callbackPath, directory)
 	}
 
 	if !success {
@@ -83,8 +92,7 @@ func performExtraction(args []string) {
 	}
 }
 
-func runCallback(callback, directory string) {
-	callbackPath := fmt.Sprintf("%v/%v.sh", directory, callback)
+func runCallback(callbackPath, directory string) {
 	if tools.PathExists(callbackPath) {
 		bashLoc, _ := exec.LookPath("bash")
 		if len(bashLoc) == 0 {
@@ -105,14 +113,14 @@ func runCallback(callback, directory string) {
 			panicQuitf("Unable to start %v (%v)\r\n", callbackPath, err)
 		}
 
-		outLogPath := fmt.Sprintf("%v/%v.stdout.log", directory, callback)
+		outLogPath := fmt.Sprintf("%v.stdout.log", callbackPath)
 		stdoutLogFile, err := os.Create(outLogPath)
 		if err != nil {
 			panicQuitf("Unable to open file for STDOUT logging %v\r\n", outLogPath)
 		}
 		defer stdoutLogFile.Close()
 
-		errLogPath := fmt.Sprintf("%v/%v.stderr.log", directory, callback)
+		errLogPath := fmt.Sprintf("%v.stderr.log", callbackPath)
 		stderrLogFile, err := os.Create(errLogPath)
 		if err != nil {
 			panicQuitf("Unable to open file for STDERR logging %v\r\n", errLogPath)
