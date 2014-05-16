@@ -75,7 +75,7 @@ func performExtraction(args []string) {
 	}
 
 	if success {
-		runPostExtractionCallback(directory)
+		runCallback("post_extraction", directory)
 	}
 
 	if !success {
@@ -83,34 +83,44 @@ func performExtraction(args []string) {
 	}
 }
 
-func runPostExtractionCallback(directory string) {
-	postExtractionPath := fmt.Sprintf("%v/post_extraction.sh", directory)
-	if tools.PathExists(postExtractionPath) {
+func runCallback(callback, directory string) {
+	callbackPath := fmt.Sprintf("%v/%v.sh", directory, callback)
+	if tools.PathExists(callbackPath) {
 		bashLoc, _ := exec.LookPath("bash")
 		if len(bashLoc) == 0 {
 			bashLoc = "/bin/bash"
 		}
-		cmd := exec.Command(bashLoc, postExtractionPath)
+		cmd := exec.Command(bashLoc, callbackPath)
 		cmd.Dir = directory
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			panicQuitf("Unable to open STDOUT")
 		}
-		if err := cmd.Start(); err != nil {
-			panicQuitf("Unable to start %v (%v)\r\n", postExtractionPath, err)
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			panicQuitf("Unable to open STDERR")
 		}
 
-		logPath := fmt.Sprintf("%v/post_extraction.log", directory)
-		stdoutLogFile, err := os.Create(logPath)
+		if err := cmd.Start(); err != nil {
+			panicQuitf("Unable to start %v (%v)\r\n", callbackPath, err)
+		}
+
+		outLogPath := fmt.Sprintf("%v/%v.stdout.log", directory, callback)
+		stdoutLogFile, err := os.Create(outLogPath)
 		if err != nil {
-			panicQuitf("Unable to open file for logging %v\r\n", logPath)
+			panicQuitf("Unable to open file for STDOUT logging %v\r\n", outLogPath)
 		}
 		defer stdoutLogFile.Close()
 
-		_, err = io.Copy(stdoutLogFile, stdout)
+		errLogPath := fmt.Sprintf("%v/%v.stderr.log", directory, callback)
+		stderrLogFile, err := os.Create(errLogPath)
 		if err != nil {
-			panicQuitf("Failed to copy STDOUT to file (%v)\r\n", err)
+			panicQuitf("Unable to open file for STDERR logging %v\r\n", errLogPath)
 		}
+		defer stderrLogFile.Close()
+
+		go io.Copy(stdoutLogFile, stdout)
+		go io.Copy(stderrLogFile, stderr)
 
 		if err := cmd.Wait(); err != nil {
 			panicQuitf("Failed finalise command (%v)\r\n", err)
