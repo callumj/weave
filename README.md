@@ -6,6 +6,8 @@ Weave produces Tar Gzip archives (optional AES encrypted) which can be extracted
 
 Weave is useful if you have a core configuration repository and want to distribute sensitive parts to specific hosts.
 
+Weave supports downloading packages from HTTP endpoints, if the package is stored with an eTag Weave will only download the package after a change is made. Inversely you can use Weave's built in S3 support to automatically upload modified files after generation.
+
 I use Weave to generate configuration groups for specific Docker hosts, ensuring they only get the sensitive Dockerfiles they need and nothing more.
 
 ## Weave layout
@@ -35,6 +37,13 @@ ignore:
   - \.DS_Store
   - ^\.bundle
   - /\.bundle
+s3:
+  access_key: AMZASSD456822X2
+  secret: "ShussThis5sASe3crt"
+  bucket: myweavebucket
+  endpoint: eu-west-1
+  folder: docker
+  public: true
 ```
 
 This configuration will produce two packages docker1.callumj.com and docker2.callumj.com. docker1.callumj.com will include everything except anything starting with extend-data, with docker2.callumj.com including only files starting with extended-data.
@@ -50,6 +59,8 @@ My weave setup also includes this
 * configurations/docker2.callumj.com/extended-data/s3_conf.yml
 
 For which these will be merged into their respestive packages. Weave doesn't require anything to merge with, which is useful if you only want to filter configuration packages.
+
+Updated packages will be uploaded to the S3 bucket when their hashed filenames change.
 
 I then call weave from this working directory
 
@@ -72,4 +83,10 @@ If your archive is encrypted then you will need to use Weave to extract your con
 
 ```
 weave /path/to/package2222.tar.gz.enc /path/to/keyfile.txt /out/put/directory
+```
+
+Alternatively if I wanted to make use of S3, I could pass in a standard HTTP address (it doesn't have to be from S3)
+
+```
+weave http://s3-eu-west-1.amazonaws.com//Datacom/Kimberley/package2222.tar.gz.enc /path/to/keyfile.txt /out/put/directory
 ```
