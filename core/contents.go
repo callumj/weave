@@ -38,6 +38,7 @@ func GetContents(root string, ignoreReg regexp.Regexp) *ContentsInfo {
 
 		if stat.Mode().IsRegular() {
 			if ignoreReg.MatchString(path) {
+				log.Printf("Ignoring %v\r\n", path)
 				return nil
 			}
 
