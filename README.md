@@ -2,11 +2,10 @@
 
 Weave is a tool that allows you to generate configuration packages for your varying configuration groups. It merges your base with each configuration group, while also applying exclusions.
 
-Weave produces Tar Gzip archives (optional AES encrypted) which can be extracted onto your target for instant use.
-
-Weave is useful if you have a core configuration repository and want to distribute sensitive parts to specific hosts.
-
-Weave supports downloading packages from HTTP endpoints, if the package is stored with an eTag Weave will only download the package after a change is made. Inversely you can use Weave's built in S3 support to automatically upload modified files after generation.
+* References a core configuration repository and want to distribute sensitive parts to specific hosts.
+* Tar Gzip archives (optional AES encrypted) which can be extracted onto your target for instant use.
+* Supports downloading packages from HTTP endpoints, if the package is stored with an eTag Weave will only download the package after a change is made. Inversely you can use Weave's built in S3 support to automatically upload modified files after generation.
+* Support for `post_extraction.sh` and `pre_extraction.sh` callback scripts, which will be called before and after extraction **when** a new configuration is downloaded.
 
 I use Weave to generate configuration groups for specific Docker hosts, ensuring they only get the sensitive Dockerfiles they need and nothing more.
 
@@ -90,3 +89,14 @@ Alternatively if I wanted to make use of S3, I could pass in a standard HTTP add
 ```
 weave http://s3-eu-west-1.amazonaws.com//Datacom/Kimberley/package2222.tar.gz.enc /path/to/keyfile.txt /out/put/directory
 ```
+
+### Callbacks
+
+When a new package is available (the only case where this is not true is when ETags match, causing no new downloads) callback scripts are invoked pre and post extraction.
+
+These callbacks are called with directory set to the final extraction directory and run using `/bin/bash`.
+
+* `pre_extraction.sh`: Called just before the extraction begins, you should use to this clean any files that may not exist in the next extraction.
+* `post_extraction.sh`: Called after extraction, allowing you to invoke any scripts you need to perform such as deployment tools (Ansible, Chef, etc) or launch the application.
+
+STDOUT and STDERR are captured from the callbacks and are stored as *.log files in the output directory.
