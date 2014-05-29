@@ -1,33 +1,64 @@
 package app
 
 import (
+	"github.com/jessevdk/go-flags"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-func Run(args []string) {
-	checkArgs(args)
+type option_set struct {
+	DisableS3 bool   `short:"d" long:"no-s3" description:"Disable publishing to S3"`
+	OnlyRun   string `short:"o" long:"only" description:"Only run specific confiugration"`
+}
 
-	if strings.HasSuffix(args[1], ".enc") || len(args) >= 3 {
+var opts option_set
+
+func Run(args []string) {
+	args, mode := checkArgs(args)
+
+	args, err := flags.ParseArgs(&opts, args)
+
+	if strings.HasSuffix(args[0], ".enc") || len(args) >= 2 && mode != "compile" {
 		performExtraction(args)
 		return
 	}
 
-	abs, err := filepath.Abs(args[1])
+	abs, err := filepath.Abs(args[0])
 	if err != nil {
 		panicQuitf("Unable to expand %v\r\n", args[1])
 	}
 
-	performCompilation(abs)
+	performCompilation(abs, opts)
 }
 
-func checkArgs(args []string) {
+func checkArgs(args []string) ([]string, string) {
 	if len(args) == 1 {
-		log.Printf("Usage: %v CONFIG_FILE\r\n", args[0])
-		panicQuitf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_FILE]\r\n", args[0])
+		printArgMessage(args[0])
+		return []string{}, ""
 	}
+
+	appname := args[0]
+	args = args[1:len(args)]
+
+	var mode string
+	if args[0] == "compile" || args[0] == "extract" {
+		if len(args) == 1 {
+			printArgMessage(appname)
+			return []string{}, ""
+		} else {
+			mode = args[0]
+			args = args[1:len(args)]
+		}
+	}
+
+	return args, mode
+}
+
+func printArgMessage(appname string) {
+	log.Printf("Usage: %v CONFIG_FILE\r\n", appname)
+	panicQuitf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_FILE]\r\n", appname)
 }
 
 func panicQuit() {

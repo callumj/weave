@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-func performCompilation(configPath string) {
+func performCompilation(configPath string, options option_set) {
 	fullPath := filepath.Dir(configPath)
 
 	// ensure working dir exists
@@ -46,8 +46,13 @@ func performCompilation(configPath string) {
 	var col []uptypes.FileDescriptor
 
 	for _, conf := range instr.Configurations {
+		if len(options.OnlyRun) != 0 {
+			if options.OnlyRun != conf.Name {
+				continue
+			}
+		}
 		finalPath := processConfiguration(conf, fullPath, *instr, baseContents, baseArchive)
-		if instr.S3 != nil {
+		if instr.S3 != nil && options.DisableS3 != true {
 			col = appendForS3(finalPath, conf, col)
 		}
 	}
