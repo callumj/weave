@@ -67,6 +67,11 @@ I then call weave from this working directory
 weave config.yml
 ```
 
+You can also pass the following command line arguments in tweak how weave performs.
+
+* `-n` Disable pushing to S3
+* `-o CONFIGURATION_NAME` Generate only the specified configuration
+
 ## Workflow
 
 Weave runs in this order
