@@ -15,21 +15,21 @@ import (
 )
 
 func performExtraction(args []string) {
-	if len(args) < 3 {
+	if len(args) < 2 {
 		panicQuitf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_DIRECTORY]\r\n", args[0])
 	}
 
-	target := args[1]
-	keyfile := args[2]
+	target := args[0]
+	keyfile := args[1]
 
 	var eTag string
 
 	matched, _ := regexp.MatchString("^https?:\\/\\/", target)
 	if matched {
-		if len(args) == 3 {
+		if len(args) == 2 {
 			panicQuitf("A OUT_DIRECTORY must be specified if using HTTP\r\n")
 		} else {
-			resp := remote.DownloadRemoteFile(target, args[3])
+			resp := remote.DownloadRemoteFile(target, args[2])
 			if resp == nil {
 				panicQuit()
 			} else {
@@ -42,8 +42,8 @@ func performExtraction(args []string) {
 	var out string
 
 	var success bool
-	if len(args) >= 4 {
-		out = strings.Join([]string{args[3], "tmp"}, ".")
+	if len(args) >= 3 {
+		out = strings.Join([]string{args[2], "tmp"}, ".")
 		success = core.DecryptFile(target, out, keyfile)
 	} else {
 		out = strings.Replace(target, ".enc", "", 1)
