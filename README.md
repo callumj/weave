@@ -9,6 +9,16 @@ Weave is a tool that allows you to generate configuration packages for your vary
 
 I use Weave to generate configuration groups for specific Docker hosts, ensuring they only get the sensitive Dockerfiles they need and nothing more.
 
+## Installation
+
+Binaries are available from [weavefiles.callumj.com](http://weavefiles.callumj.com/)
+
+Alternatively you can use Go to install `weave`
+
+```
+go install github.com/callumj/weave
+```
+
 ## Weave layout
 
 Your weave project should look like this
