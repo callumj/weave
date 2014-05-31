@@ -1,11 +1,14 @@
 #!/bin/bash
 
-CURRENT_BRANCH=`git branch | sed -n '/\* /s///p'`
+if [[ -z "$BUILDBOX_BRANCH" ]]
+then
+  BUILDBOX_BRANCH=`git branch | sed -n '/\* /s///p'`
+fi
 VERSION=`cat VERSION`
 
-if ! [[ "${CURRENT_BRANCH}" == "master" ]]
+if ! [[ "${BUILDBOX_BRANCH}" == "master" ]]
 then
-  if [[ "${CURRENT_BRANCH}" == "development" ]]
+  if [[ "${BUILDBOX_BRANCH}" == "development" ]]
   then
     VERSION="${VERSION}-dev"
   else
