@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [[ -z "$GOPATH" ]]
+then
+  source /etc/profile.d/go.sh
+fi
+
 if [[ -z "$BUILDBOX_BRANCH" ]]
 then
   BUILDBOX_BRANCH=`git branch | sed -n '/\* /s///p'`
