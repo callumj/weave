@@ -9,7 +9,7 @@ func CleanUpIfNeeded(path string) {
 	if PathExists(path) {
 		err := os.RemoveAll(path)
 		if err != nil {
-			log.Println("Failed to clean up %v\r\n", path)
+			log.Printf("Failed to clean up %s\r\n", path)
 		}
 	}
 }

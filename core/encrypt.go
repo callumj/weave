@@ -84,7 +84,7 @@ func EncryptFile(target, out, keyfile string) bool {
 	writer := &cipher.StreamWriter{S: stream, W: outPntr}
 
 	if _, err := io.Copy(writer, inFile); err != nil {
-		log.Printf("Could not encrypt\r\n", out)
+		log.Printf("Could not encrypt %s\r\n", out)
 		return false
 	}
 	writer.Close()

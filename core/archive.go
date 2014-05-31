@@ -116,7 +116,7 @@ func MergeIntoBaseArchive(baseArchive ArchiveInfo, basedir string, contents []Fi
 		}
 
 		if err != nil {
-			log.Printf("Copy failed: \r\n", err)
+			log.Printf("Copy failed: %v\r\n", err)
 			return false
 		}
 

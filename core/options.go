@@ -103,7 +103,7 @@ func generateRegexpExpression(ary []string) *regexp.Regexp {
 	return reg
 }
 
-func ExplainInstruction(instr Instruction) {
+func ExplainInstruction(instr *Instruction) {
 	log.Printf("Using: %v\r\n", instr.Src)
 	log.Printf("Encryption: %v\r\n", instr.Encrypt)
 	for _, conf := range instr.Configurations {

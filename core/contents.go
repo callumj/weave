@@ -27,7 +27,7 @@ type ContentsInfo struct {
 	Contents []FileInfo
 }
 
-func GetContents(root string, ignoreReg regexp.Regexp) *ContentsInfo {
+func GetContents(root string, ignoreReg *regexp.Regexp) *ContentsInfo {
 	cnts := ContentsInfo{}
 
 	walkFn := func(path string, info os.FileInfo, err error) error {
@@ -37,7 +37,7 @@ func GetContents(root string, ignoreReg regexp.Regexp) *ContentsInfo {
 		}
 
 		if stat.Mode().IsRegular() {
-			if ignoreReg.MatchString(path) {
+			if ignoreReg != nil && ignoreReg.MatchString(path) {
 				log.Printf("Ignoring %v\r\n", path)
 				return nil
 			}

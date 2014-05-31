@@ -28,9 +28,9 @@ func performCompilation(configPath string, options option_set) {
 	if instr == nil {
 		panicQuit()
 	}
-	core.ExplainInstruction(*instr)
+	core.ExplainInstruction(instr)
 
-	baseContents := core.GetContents(instr.Src, instr.IgnoreReg)
+	baseContents := core.GetContents(instr.Src, &instr.IgnoreReg)
 	if baseContents == nil {
 		panicQuit()
 	}
@@ -51,7 +51,7 @@ func performCompilation(configPath string, options option_set) {
 				continue
 			}
 		}
-		finalPath := processConfiguration(conf, fullPath, *instr, baseContents, baseArchive)
+		finalPath := processConfiguration(conf, fullPath, instr, baseContents, baseArchive)
 		if instr.S3 != nil && options.DisableS3 != true {
 			col = appendForS3(finalPath, conf, col)
 		}
@@ -62,7 +62,7 @@ func performCompilation(configPath string, options option_set) {
 	}
 }
 
-func processConfiguration(conf core.Configuration, fullPath string, instr core.Instruction, baseContents *core.ContentsInfo, baseArchive *core.ArchiveInfo) string {
+func processConfiguration(conf core.Configuration, fullPath string, instr *core.Instruction, baseContents *core.ContentsInfo, baseArchive *core.ArchiveInfo) string {
 	thisPath := fmt.Sprintf("%v/configurations/%v", fullPath, conf.Name)
 	workingDir := fmt.Sprintf("%v/working", fullPath)
 	log.Printf("Configuring: %v\r\n", thisPath)
@@ -109,10 +109,10 @@ func appendForS3(finalPath string, conf core.Configuration, col []uptypes.FileDe
 	return append(col, *desc)
 }
 
-func constructContents(thisPath string, baseContents *core.ContentsInfo, instr core.Instruction) *core.ContentsInfo {
+func constructContents(thisPath string, baseContents *core.ContentsInfo, instr *core.Instruction) *core.ContentsInfo {
 	var thisContents *core.ContentsInfo
 	if tools.PathExists(thisPath) {
-		thisContents = core.GetContents(thisPath, instr.IgnoreReg)
+		thisContents = core.GetContents(thisPath, &instr.IgnoreReg)
 	} else {
 		thisContents = new(core.ContentsInfo)
 		thisContents.Size = 0
