@@ -1,10 +1,5 @@
 #!/bin/bash
 
-if [[ -z "$GOPATH" ]]
-then
-  source /etc/profile.d/go.sh
-fi
-
 if [[ -z "$BUILDBOX_BRANCH" ]]
 then
   BUILDBOX_BRANCH=`git branch | sed -n '/\* /s///p'`
@@ -28,7 +23,7 @@ VET=`go tool vet . 2>&1 >/dev/null`
 if ! [ -n "$VET" ]
 then
   echo "All good"
-  goxc -pv ${VERSION} -d builds go-vet go-test go-install xc codesign copy-resources archive-zip archive-tar-gz pkg-build rmbin
+  goxc -pv ${VERSION} -d builds xc copy-resources archive-zip archive-tar-gz pkg-build rmbin
 else
   echo "$VET"
   exit -1
