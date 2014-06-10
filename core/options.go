@@ -25,7 +25,7 @@ type Instruction struct {
 	Encrypt        bool
 	Configurations []Configuration
 	Ignore         []string
-	IgnoreReg      regexp.Regexp
+	IgnoreReg      *regexp.Regexp
 	S3             *uptypes.S3Config
 }
 
@@ -43,13 +43,15 @@ func ParseInstruction(path string) *Instruction {
 		return nil
 	}
 
-	var ignoreReg = generateRegexpExpression(instr.Ignore)
-	if ignoreReg == nil {
-		log.Printf("Failed to merge into Regexp")
-		return nil
-	}
+	if len(instr.Ignore) != 0 {
+		var ignoreReg = generateRegexpExpression(instr.Ignore)
+		if ignoreReg == nil {
+			log.Printf("Failed to merge into Regexp")
+			return nil
+		}
 
-	instr.IgnoreReg = *ignoreReg
+		instr.IgnoreReg = ignoreReg
+	}
 
 	for index, conf := range instr.Configurations {
 		if !fillOutConfiguration(&conf) {

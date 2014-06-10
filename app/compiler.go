@@ -30,7 +30,7 @@ func performCompilation(configPath string, options option_set) {
 	}
 	core.ExplainInstruction(instr)
 
-	baseContents := core.GetContents(instr.Src, &instr.IgnoreReg)
+	baseContents := core.GetContents(instr.Src, instr.IgnoreReg)
 	if baseContents == nil {
 		panicQuit()
 	}
@@ -112,7 +112,7 @@ func appendForS3(finalPath string, conf core.Configuration, col []uptypes.FileDe
 func constructContents(thisPath string, baseContents *core.ContentsInfo, instr *core.Instruction) *core.ContentsInfo {
 	var thisContents *core.ContentsInfo
 	if tools.PathExists(thisPath) {
-		thisContents = core.GetContents(thisPath, &instr.IgnoreReg)
+		thisContents = core.GetContents(thisPath, instr.IgnoreReg)
 	} else {
 		thisContents = new(core.ContentsInfo)
 		thisContents.Size = 0
