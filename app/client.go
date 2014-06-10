@@ -75,6 +75,7 @@ func performExtraction(args []string) {
 		success = core.ExtractArchive(out, directory)
 	}
 
+	tools.InitConfig(fmt.Sprintf("%s/local_config.yml", directory))
 	tools.CleanUpIfNeeded(out)
 
 	if success && len(eTag) != 0 {
@@ -131,6 +132,15 @@ func runCallback(callbackPath, directory string) {
 		go io.Copy(stderrLogFile, stderr)
 
 		if err := cmd.Wait(); err != nil {
+			outStat, outErr := stdoutLogFile.Stat()
+			if outErr == nil && outStat.Size() > 0 {
+				tools.HandleMessage(fmt.Sprintf("STDOUT: Error with %s", callbackPath), outLogPath)
+			}
+
+			errStat, outErr := stdoutLogFile.Stat()
+			if outErr == nil && errStat.Size() > 0 {
+				tools.HandleMessage(fmt.Sprintf("STDERR: Error with %s", callbackPath), errLogPath)
+			}
 			panicQuitf("Failed finalise command (%v)\r\n", err)
 		}
 	}
