@@ -115,3 +115,10 @@ These callbacks are called with directory set to the final extraction directory 
 * `post_extraction.sh`: Called after extraction, allowing you to invoke any scripts you need to perform such as deployment tools (Ansible, Chef, etc) or launch the application.
 
 STDOUT and STDERR are captured from the callbacks and are stored as *.log files in the output directory.
+
+
+## License
+
+See [LICENSE](License).
+
+If you have made any useful changes to weave it would be great if you could send me a Pull Request.
