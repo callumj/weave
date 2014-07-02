@@ -119,6 +119,6 @@ STDOUT and STDERR are captured from the callbacks and are stored as *.log files 
 
 ## License
 
-See [LICENSE](License).
+See [LICENSE](LICENSE).
 
 If you have made any useful changes to weave it would be great if you could send me a Pull Request.
