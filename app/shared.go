@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/callumj/weave/tools"
 	"github.com/jessevdk/go-flags"
 	"log"
 	"os"
@@ -16,6 +17,7 @@ type option_set struct {
 var opts option_set
 
 func Run(args []string) {
+
 	args, mode := checkArgs(args)
 
 	args, err := flags.ParseArgs(&opts, args)
@@ -57,6 +59,7 @@ func checkArgs(args []string) ([]string, string) {
 }
 
 func printArgMessage(appname string) {
+	log.Printf("Version: %s\r\n", tools.WeaveVersion)
 	log.Printf("Usage: %v CONFIG_FILE\r\n", appname)
 	panicQuitf("Usage: %v ENCRYPTED_FILE KEY_FILE [OUT_FILE]\r\n", appname)
 }
