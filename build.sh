@@ -18,7 +18,7 @@ then
 fi
 
 rm -r -f tmp/go
-rm -r -f builds/
+rm -r -f builds/${VERSION}
 
 # vet the source (capture errors because the current version does not use exit statuses currently)
 echo "Vetting..."
@@ -30,7 +30,7 @@ if ! [ -n "$VET" ]
 then
   echo "All good"
   mkdir -p tmp/go
-  mkdir builds
+  mkdir builds/
   mkdir tmp/go/src tmp/go/bin tmp/go/pkg
   mkdir -p tmp/go/src/github.com/callumj/weave
   cp -R app core remote tools main.go tmp/go/src/github.com/callumj/weave/
