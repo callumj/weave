@@ -30,7 +30,7 @@ if ! [ -n "$VET" ]
 then
   echo "All good"
   mkdir -p tmp/go
-  mkdir builds/
+  mkdir -p builds/
   mkdir tmp/go/src tmp/go/bin tmp/go/pkg
   mkdir -p tmp/go/src/github.com/callumj/weave
   cp -R app core remote tools main.go tmp/go/src/github.com/callumj/weave/
