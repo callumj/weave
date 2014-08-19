@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
 type DownloadInfo struct {
@@ -45,6 +46,7 @@ func DownloadRemoteFile(url, finalDirectory string) *DownloadInfo {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Printf("Unable to construct URL for %v\r\n", url)
+		os.Remove(out.Name())
 		return nil
 	}
 	if len(eTag) != 0 {
@@ -56,23 +58,27 @@ func DownloadRemoteFile(url, finalDirectory string) *DownloadInfo {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Unable to communicate with server %v\r\n", url)
+		os.Remove(out.Name())
 		return nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 304 {
 		log.Printf("Object not modified, finishing up.\r\n")
+		os.Remove(out.Name())
 		return nil
 	}
 
 	n, err := io.Copy(out, resp.Body)
 	if err != nil {
 		log.Printf("Unable to download file\r\n")
+		os.Remove(out.Name())
 		return nil
 	}
 
 	if n == 0 {
 		log.Printf("Nothing was copied\r\n")
+		os.Remove(out.Name())
 		return nil
 	}
 

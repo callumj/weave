@@ -38,6 +38,7 @@ func performExtraction(args []string) {
 			}
 		}
 	}
+	defer os.Remove(target)
 
 	var out string
 
