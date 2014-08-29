@@ -45,16 +45,23 @@ func performCompilation(configPath string, options option_set) {
 
 	var col []uptypes.FileDescriptor
 
+	var found bool
 	for _, conf := range instr.Configurations {
 		if len(options.OnlyRun) != 0 {
 			if options.OnlyRun != conf.Name {
 				continue
+			} else {
+				found = true
 			}
 		}
 		finalPath := processConfiguration(conf, fullPath, instr, baseContents, baseArchive)
 		if instr.S3 != nil && options.DisableS3 != true {
 			col = appendForS3(finalPath, conf, col)
 		}
+	}
+
+	if len(options.OnlyRun) != 0 && !found {
+		panicQuitf("The specified configuration %v was not found\r\n", options.OnlyRun)
 	}
 
 	if len(col) != 0 {
