@@ -1,5 +1,3 @@
-![weave](http://metrix.callumj.com/metric/increment?key=image_redirect&source=weave&redirect=http://weavefiles.callumj.com/static/logo1.png)
-
 Weave is a tool that allows you to generate configuration packages for your varying configuration groups. It merges your base with each configuration group, while also applying exclusions.
 
 * References a core configuration repository and want to distribute sensitive parts to specific hosts.
